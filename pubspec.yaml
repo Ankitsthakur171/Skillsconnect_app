@@ -1,0 +1,231 @@
+name: skillsconnect
+description: "A new Flutter project."
+# The following line prevents the package from being accidentally published to
+# pub.dev using `flutter pub publish`. This is preferred for private packages.
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+# The following defines the version and build number for your application.
+# A version number is three numbers separated by dots, like 1.2.43
+# followed by an optional build number separated by a +.
+# Both the version and the builder number may be overridden in flutter
+# build by specifying --build-name and --build-number, respectively.
+# In Android, build-name is used as versionName while build-number used as versionCode.
+# Read more about Android versioning at https://developer.android.com/studio/publish/versioning
+# In iOS, build-name is used as CFBundleShortVersionString while build-number is used as CFBundleVersion.
+# Read more about iOS versioning at
+# https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
+# In Windows, build-name is used as the major, minor, and patch parts
+# of the product and file versions while build-number is used as the build suffix.
+version: 2.0.2+8
+
+environment:
+  sdk: ^3.9.0
+
+# Dependencies specify other packages that your package needs in order to work.
+# To automatically upgrade your package dependencies to the latest versions
+# consider running `flutter pub upgrade --major-versions`. Alternatively,
+# dependencies can be manually updated by changing the version numbers below to
+# the latest version available on pub.dev. To see which dependencies have newer
+# versions available, run `flutter pub outdated`.
+dependencies:
+  flutter:
+    sdk: flutter
+  equatable: ^2.0.7
+  scrollable_positioned_list: ^0.3.8
+  http: ^1.4.0
+  shared_preferences: ^2.5.3
+  intl: ^0.20.2
+  dropdown_search: ^5.0.6
+  flutter_svg: ^2.2.1
+  url_launcher: ^6.3.1
+  infinite_scroll_pagination: ^4.0.0
+  firebase_core: ^4.0.0
+  firebase_messaging: ^16.0.0
+  flutter_local_notifications: ^19.3.0
+  syncfusion_flutter_pdfviewer: ^29.1.38
+  permission_handler: ^12.0.0+1
+  flutter_file_dialog: ^3.0.2
+  path_provider: ^2.1.5
+  device_info_plus: ^11.3.0
+  encrypt: ^5.0.3
+  uuid: ^4.5.1
+  html: ^0.15.5
+  dio: ^5.9.0
+  file_picker: ^10.2.0
+  crypto: ^3.0.6
+  share_plus: ^11.0.0
+  agora_rtc_engine: ^6.5.2
+  connectivity_plus: ^6.1.5
+  internet_connection_checker: ^3.0.1
+  internet_connection_checker_plus: ^2.7.2
+  cloud_firestore: ^6.0.0
+  vibration: ^3.1.3
+  flutter_ringtone_player: ^4.0.0+4
+  flutter_bloc: ^9.1.1
+  flutter_callkit_incoming: ^2.5.8
+  placehold_img: ^0.0.4
+  video_player: ^2.10.0
+  package_info_plus: ^9.0.0
+  flutter_cache_manager: ^3.4.1
+  webview_flutter: ^4.13.0
+  skeletonizer: ^2.1.0+1
+  android_id: ^0.4.0
+  bloc_concurrency: ^0.3.0
+  file_saver: ^0.3.1
+  mime: ^2.0.0
+  video_thumbnail: ^0.5.6
+  open_filex: ^4.7.0
+  skeletons: ^0.0.3
+  audioplayers: ^6.5.1
+  cupertino_icons: ^1.0.8
+  flutter_lints: ">=5.0.0 <6.0.0"
+  passwordfield: ^0.2.0
+  percent_indicator: ^4.2.5
+  image_picker: ^1.1.2
+  path: ^1.9.1
+  chewie: ^1.11.3
+  youtube_player_flutter: ^9.1.2
+  shimmer: ^3.0.0
+  flutter_cached_pdfview: ^0.4.2
+  jwt_decode: ^0.3.1
+  flutter_screenutil: ^5.9.3
+  flutter_native_splash: ^2.4.6
+  flutter_inappwebview: ^6.1.5
+  flutter_html: ^3.0.0
+  fluttertoast: ^9.0.0
+
+
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_launcher_icons: ^0.14.4
+
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icons/skills.png"
+
+
+# For information on the generic Dart part of this file, see the
+# following page: https://dart.dev/tools/pub/pubspec
+
+# The following section is specific to Flutter packages.
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/
+    - assets/audio/ringback.mp3
+    - assets/applications.png
+    - assets/invited.png
+    - assets/selected.png
+    - assets/rejected.png
+    - assets/tata.png
+    - assets/frame.png
+    - assets/notification.png
+    - assets/Filters.png
+    - assets/home.png
+    - assets/interviews.png
+    - assets/contacts.png
+    - assets/account.png
+    - assets/logo.png
+    - assets/logo2.png
+    - assets/lock.png
+    - assets/mail.png
+    - assets/tick.png
+    - assets/institute.png
+    - assets/bag.png
+    - assets/year.png
+    - assets/person.png
+    - assets/location.png
+    - assets/bank.png
+    - assets/cv.png
+    - assets/zoom.png
+    - assets/project.png
+    - assets/note.png
+    - assets/play_button.png
+    - assets/videocam.png
+    - assets/user.png
+    - assets/tperson.png
+    - assets/alarm.png
+    - assets/prof.png
+    - assets/mobile.png
+    - assets/seats.png
+    - assets/salary.png
+    - assets/downarrow.png
+    - assets/img.png
+    - assets/users.png
+    - assets/ui.png
+    - assets/mark.png
+    - assets/image.jpg
+    - assets/notify.png
+    - assets/filter.png
+    - assets/college.png
+    - assets/colleges.png
+    - assets/students.png
+    - assets/clipboard.png
+    - assets/edit.png          # (duplicate line removed)
+    - assets/edit2.png          # (duplicate line removed)
+    - assets/mailcheck.png
+    - assets/whatsapp.png
+    - assets/useridentify.png
+    - assets/linkedin.png
+    - assets/checksquare.png
+    - assets/estate.png
+    - assets/wishlist.png
+    - assets/setting.png
+    - assets/banks.png
+    - assets/delete.png
+    - assets/building.png
+    - assets/rank.png
+    - assets/phone1.png
+    - assets/loader.png
+    - assets/calender.png
+    - assets/arrow_down.png
+    - assets/arrow_up.png
+    - assets/send.png
+    - assets/add_user.png
+    - assets/share.png
+    - assets/settings.png
+    - assets/changepsswd.png
+    - assets/phone.png
+    - assets/logout.png
+    - assets/placeholder.png
+    - assets/tableicon.png
+    - assets/join.png
+    - assets/manual.png
+    - assets/gmeet.png
+    - assets/meeting.png
+    - assets/uparrow.png
+    - assets/cake.png
+    - assets/appliedate.png
+    - assets/nointernet.png
+    - assets/pause_button.png
+
+
+  # An image asset can refer to one or more resolution-specific "variants", see
+  # https://flutter.dev/to/resolution-aware-images
+
+  # For details regarding adding assets from package dependencies, see
+  # https://flutter.dev/to/asset-from-package
+
+  # To add custom fonts to your application, add a fonts section here,
+  # in this "flutter" section. Each entry in this list should have a
+  # "family" key with the font family name, and a "fonts" key with a
+  # list giving the asset and other descriptors for the font. For
+  # example:
+  # fonts:
+  #   - family: Schyler
+  #     fonts:
+  #       - asset: fonts/Schyler-Regular.ttf
+  #       - asset: fonts/Schyler-Italic.ttf
+  #         style: italic
+  #   - family: Trajan Pro
+  #     fonts:
+  #       - asset: fonts/TrajanPro.ttf
+  #       - asset: fonts/TrajanPro_Bold.ttf
+  #         weight: 700
+  #
+  # For details regarding fonts from package dependencies,
+  # see https://flutter.dev/to/font-from-package
