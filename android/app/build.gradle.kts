@@ -121,13 +121,25 @@ android {
 //        }
 //    }
 //
-//    buildTypes {
-//        release {
-//            isMinifyEnabled = false
-//            isShrinkResources = false
-//            signingConfig = signingConfigs.getByName("release")
-//        }
-//    }
+    buildTypes {
+        release {
+            // Keep shrink enabled for smaller release APK, but supply rules
+            isMinifyEnabled = true
+            isShrinkResources = true
+            // Use default + custom ProGuard rules to suppress WindowManager warnings
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                file("proguard-rules.pro")
+            )
+            // Allow running `flutter run --release` without a release keystore
+            signingConfig = signingConfigs.getByName("debug")
+        }
+        debug {
+            // Ensure debug runs fine
+            isMinifyEnabled = false
+            isShrinkResources = false
+        }
+    }
 
 }
 

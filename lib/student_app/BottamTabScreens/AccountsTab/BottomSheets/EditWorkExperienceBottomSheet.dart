@@ -9,7 +9,7 @@ class EditWorkExperienceBottomSheet extends StatefulWidget {
 
   const EditWorkExperienceBottomSheet({
     super.key,
-    required this.initialData,
+    required this.initialData,  
     required this.onSave,
   });
 
@@ -27,6 +27,20 @@ class _EditWorkExperienceBottomSheetState
   late TextEditingController _organizationController;
   late TextEditingController _skillsController;
   late TextEditingController _jobDescriptionController;
+
+  late FocusNode _jobTitleFocus;
+  late FocusNode _organizationFocus;
+  late FocusNode _skillsFocus;
+  late FocusNode _jobDescriptionFocus;
+
+  final GlobalKey _jobTitleKey = GlobalKey();
+  final GlobalKey _organizationKey = GlobalKey();
+  final GlobalKey _skillsKey = GlobalKey();
+  final GlobalKey _jobDescriptionKey = GlobalKey();
+  final GlobalKey _fromDateKey = GlobalKey();
+  final GlobalKey _toDateKey = GlobalKey();
+
+  ScrollController? _sheetScrollController;
 
   late String _fromMonth;
   late String _fromYear;
@@ -93,71 +107,85 @@ class _EditWorkExperienceBottomSheetState
   @override
   void initState() {
     super.initState();
-    print('🔍 [EditWorkExperienceBottomSheet] Initializing');
-
-    const validMonths = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec'
-    ];
 
     final currentYear = DateTime.now().year;
-    final validYears =
-        List<String>.generate(30, (i) => (currentYear - i).toString());
 
-    _jobTitleController = TextEditingController(
-      text: widget.initialData?.jobTitle ?? '',
-    );
-    _organizationController = TextEditingController(
-      text: widget.initialData?.organization ?? '',
-    );
-    _skillsController = TextEditingController(
-      text: widget.initialData?.skills ?? '',
-    );
-    _jobDescriptionController = TextEditingController(
-      text: widget.initialData?.jobDescription ?? '',
-    );
+    _jobTitleController =
+        TextEditingController(text: widget.initialData?.jobTitle ?? '');
+    _organizationController =
+        TextEditingController(text: widget.initialData?.organization ?? '');
+    _skillsController =
+        TextEditingController(text: widget.initialData?.skills ?? '');
+    _jobDescriptionController =
+        TextEditingController(text: widget.initialData?.jobDescription ?? '');
 
-    _fromMonth = validMonths.contains(widget.initialData?.exStartMonth)
-        ? widget.initialData!.exStartMonth
-        : 'Jan';
+    _jobTitleFocus = FocusNode()
+      ..addListener(() =>
+          _onFieldFocus(_jobTitleFocus, _jobTitleKey));
+    _organizationFocus = FocusNode()
+      ..addListener(() =>
+          _onFieldFocus(_organizationFocus, _organizationKey));
+    _skillsFocus = FocusNode()
+      ..addListener(() =>
+          _onFieldFocus(_skillsFocus, _skillsKey));
+    _jobDescriptionFocus = FocusNode()
+      ..addListener(() =>
+          _onFieldFocus(_jobDescriptionFocus, _jobDescriptionKey));
 
-    _fromYear = validYears.contains(widget.initialData?.exStartYear)
-        ? widget.initialData!.exStartYear
-        : currentYear.toString();
+    // Handle empty strings from API by providing defaults
+    _fromMonth = (widget.initialData?.exStartMonth?.isEmpty ?? true)
+        ? 'Jan'
+        : widget.initialData!.exStartMonth;
+    _fromYear = (widget.initialData?.exStartYear?.isEmpty ?? true)
+        ? currentYear.toString()
+        : widget.initialData!.exStartYear;
+    _toMonth = (widget.initialData?.exEndMonth?.isEmpty ?? true)
+        ? 'Jan'
+        : widget.initialData!.exEndMonth;
+    _toYear = (widget.initialData?.exEndYear?.isEmpty ?? true)
+        ? currentYear.toString()
+        : widget.initialData!.exEndYear;
 
-    _toMonth = validMonths.contains(widget.initialData?.exEndMonth)
-        ? widget.initialData!.exEndMonth
-        : 'Jan';
+    experienceInYear = (widget.initialData?.totalExperienceYears?.isEmpty ?? true)
+        ? '0'
+        : widget.initialData!.totalExperienceYears;
+    experienceInMonths = (widget.initialData?.totalExperienceMonths?.isEmpty ?? true)
+        ? '0'
+        : widget.initialData!.totalExperienceMonths;
+    salaryInLakhs = (widget.initialData?.salaryInLakhs?.isEmpty ?? true)
+        ? '0'
+        : widget.initialData!.salaryInLakhs;
+    salaryInThousands = (widget.initialData?.salaryInThousands?.isEmpty ?? true)
+        ? '0'
+        : widget.initialData!.salaryInThousands;
 
-    _toYear = validYears.contains(widget.initialData?.exEndYear)
-        ? widget.initialData!.exEndYear
-        : currentYear.toString();
-
-    experienceInYear = widget.initialData?.totalExperienceYears ?? '0';
-    experienceInMonths = widget.initialData?.totalExperienceMonths ?? '0';
-    salaryInLakhs = widget.initialData?.salaryInLakhs ?? '0';
-    salaryInThousands = widget.initialData?.salaryInThousands ?? '0';
-
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: this,
-    );
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeIn),
-    );
+    _animationController =
+        AnimationController(vsync: this, duration: const Duration(milliseconds: 300));
+    _fadeAnimation =
+        CurvedAnimation(parent: _animationController, curve: Curves.easeIn);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _animationController.forward();
+    });
+  }
+
+  void _onFieldFocus(FocusNode node, GlobalKey key) {
+    if (!node.hasFocus) return;
+    _scrollIntoView(key);
+  }
+
+  void _scrollIntoView(GlobalKey targetKey) {
+    final ctx = targetKey.currentContext;
+    if (ctx == null) return;
+
+    Future.delayed(const Duration(milliseconds: 120), () {
+      if (!mounted) return;
+      Scrollable.ensureVisible(
+        ctx,
+        duration: const Duration(milliseconds: 320),
+        curve: Curves.easeOutCubic,
+        alignment: 0.12,
+      );
     });
   }
 
@@ -167,6 +195,12 @@ class _EditWorkExperienceBottomSheetState
     _organizationController.dispose();
     _skillsController.dispose();
     _jobDescriptionController.dispose();
+
+    _jobTitleFocus.dispose();
+    _organizationFocus.dispose();
+    _skillsFocus.dispose();
+    _jobDescriptionFocus.dispose();
+
     _animationController.dispose();
     super.dispose();
   }
@@ -219,15 +253,28 @@ class _EditWorkExperienceBottomSheetState
 
     try {
       final result = widget.onSave(workExperience);
-      if (result is Future) await result;
+      bool success = false;
+      if (result is Future<bool>) {
+        success = await result;
+      } else if (result is bool) {
+        success = result;
+      }
 
       if (mounted) {
         setState(() => saving = false);
-        _showSnackBarOnce(
-          context,
-          'Work experience saved successfully',
-          backgroundColor: Colors.green,
-        );
+        if (success) {
+          _showSnackBarOnce(
+            context,
+            'Work experience saved successfully',
+            backgroundColor: Colors.green,
+          );
+        } else {
+          _showSnackBarOnce(
+            context,
+            'Failed to save work experience. Please check all required fields.',
+            backgroundColor: Colors.red,
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -248,9 +295,10 @@ class _EditWorkExperienceBottomSheetState
     return DraggableScrollableSheet(
       expand: false,
       initialChildSize: 0.9,
-      maxChildSize: 0.9,
-      minChildSize: 0.9,
+      maxChildSize: 0.95,
+      minChildSize: 0.8,
       builder: (context, scrollController) {
+        _sheetScrollController = scrollController;
         return FadeTransition(
           opacity: _fadeAnimation,
           child: Container(
@@ -289,24 +337,25 @@ class _EditWorkExperienceBottomSheetState
                   Expanded(
                     child: ListView(
                       controller: scrollController,
-                      physics: const AlwaysScrollableScrollPhysics(),
+                      physics: const BouncingScrollPhysics(),
                       padding: EdgeInsets.only(
-                        bottom: 24.h,
+                        bottom: 18.h,
                       ),
                       children: [
                         _buildLabel("Job Title"),
-                        _buildTextField("Enter Job name", _jobTitleController, required: true),
+                        _buildTextField("Enter Job name", _jobTitleController, required: true, focusNode: _jobTitleFocus, fieldKey: _jobTitleKey),
                         _buildLabel("Company Name"),
                         _buildTextField("Enter issuing organization",
-                            _organizationController, required: true),
+                            _organizationController, required: true, focusNode: _organizationFocus, fieldKey: _organizationKey),
                         _buildLabel("Add Skills"),
-                        _buildTextField("Enter skills", _skillsController, required: true),
+                        _buildTextField("Enter skills", _skillsController, required: true, focusNode: _skillsFocus, fieldKey: _skillsKey),
                         _buildLabel("From Date"),
                         _buildDateRow(
                           _fromMonth,
                           _fromYear,
                           (val) => setState(() => _fromMonth = val),
                           (val) => setState(() => _fromYear = val),
+                          rowKey: _fromDateKey,
                         ),
                         _buildLabel("To Date"),
                         _buildDateRow(
@@ -314,6 +363,7 @@ class _EditWorkExperienceBottomSheetState
                           _toYear,
                           (val) => setState(() => _toMonth = val),
                           (val) => setState(() => _toYear = val),
+                          rowKey: _toDateKey,
                         ),
                         _buildLabel("Experience"),
                         Row(
@@ -406,36 +456,36 @@ class _EditWorkExperienceBottomSheetState
                         ),
                         _buildLabel("Add Details"),
                         _buildTextField(
-                            "Job details ", _jobDescriptionController, required: true),
-                        SizedBox(height: 27.1.h),
-                        ElevatedButton(
-                          onPressed: saving ? null : _handleSave,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF005E6A),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(27.1.r),
-                            ),
-                            minimumSize: Size.fromHeight(45.1.h),
-                          ),
-                          child: saving
-                              ? SizedBox(
-                                  height: 18.1.h,
-                                  width: 18.1.w,
-                                  child: const CircularProgressIndicator(
-                                    strokeWidth: 1.8,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : Text(
-                                  'Save',
-                                  style: TextStyle(
-                                      color: Colors.white, fontSize: 13.7.sp),
-                                ),
-                        ),
-                        SizedBox(height: 9.h),
+                            "Job details ", _jobDescriptionController, required: true, focusNode: _jobDescriptionFocus, fieldKey: _jobDescriptionKey),
                       ],
                     ),
                   ),
+                  SizedBox(height: 18.h),
+                  ElevatedButton(
+                    onPressed: saving ? null : _handleSave,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF005E6A),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(27.1.r),
+                      ),
+                      minimumSize: Size.fromHeight(45.1.h),
+                    ),
+                    child: saving
+                        ? SizedBox(
+                            height: 18.1.h,
+                            width: 18.1.w,
+                            child: const CircularProgressIndicator(
+                              strokeWidth: 1.8,
+                              color: Colors.white,
+                            ),
+                          )
+                        : Text(
+                            'Save',
+                            style: TextStyle(
+                                color: Colors.white, fontSize: 13.7.sp),
+                          ),
+                  ),
+                  SizedBox(height: 30.h),
                 ],
               ),
             ),
@@ -464,58 +514,51 @@ class _EditWorkExperienceBottomSheetState
     required List<String> items,
     required void Function(String?) onChanged,
   }) {
-    final focusNode = FocusNode();
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 5.4.h),
-      child: EnsureVisibleWhenFocused(
-        focusNode: focusNode,
-        child: NonSearchableDropdownField(
-          value:
-              value.isNotEmpty && items.contains(value) ? value : items.first,
-          items: items,
-          onChanged: onChanged,
-          label: 'Please select',
-        ),
+      child: NonSearchableDropdownField(
+        value:
+            value.isNotEmpty && items.contains(value) ? value : items.first,
+        items: items,
+        onChanged: onChanged,
+        label: 'Please select',
       ),
     );
   }
 
   Widget _buildTextField(String hintText, TextEditingController controller,
-      {IconData? suffixIcon, bool readOnly = false, VoidCallback? onTap, bool required = false}) {
-    final focusNode = FocusNode();
-    return Padding(
+      {IconData? suffixIcon, bool readOnly = false, VoidCallback? onTap, bool required = false, FocusNode? focusNode, GlobalKey? fieldKey}) {
+    return Container(
+      key: fieldKey,
       padding: EdgeInsets.symmetric(vertical: 5.4.h),
-      child: EnsureVisibleWhenFocused(
+      child: TextFormField(
+        controller: controller,
         focusNode: focusNode,
-        child: TextFormField(
-          controller: controller,
-          focusNode: focusNode,
-          readOnly: readOnly,
-          onTap: onTap,
-          decoration: InputDecoration(
-            hintText: hintText,
-            hintStyle: TextStyle(fontSize: 12.4.sp),
-            suffixIcon: suffixIcon != null
-                ? IconButton(
-                    icon: Icon(suffixIcon, size: 17.7.w), onPressed: onTap
-            )
-                : null,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10.8.r),
-            ),
+        readOnly: readOnly,
+        onTap: onTap,
+        decoration: InputDecoration(
+          hintText: hintText,
+          hintStyle: TextStyle(fontSize: 12.4.sp),
+          suffixIcon: suffixIcon != null
+              ? IconButton(
+                  icon: Icon(suffixIcon, size: 17.7.w), onPressed: onTap
+          )
+              : null,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10.8.r),
           ),
-          style: TextStyle(fontSize: 12.4.sp),
-          validator: (value) =>
-              (required && (value == null || value.trim().isEmpty))
-                  ? 'Required'
-                  : null,
         ),
+        style: TextStyle(fontSize: 12.4.sp),
+        validator: (value) =>
+            (required && (value == null || value.trim().isEmpty))
+                ? 'Required'
+                : null,
       ),
     );
   }
 
   Widget _buildDateRow(String month, String year,
-      Function(String) onMonthChanged, Function(String) onYearChanged) {
+      Function(String) onMonthChanged, Function(String) onYearChanged, {GlobalKey? rowKey}) {
     final months = [
       'Jan',
       'Feb',
@@ -531,74 +574,32 @@ class _EditWorkExperienceBottomSheetState
       'Dec'
     ];
     final years = List.generate(30, (index) => (2000 + index).toString());
-    return Row(
-      children: [
-        Expanded(
-          child: _dropdownField(
-            value: month,
-            items: months,
-            onChanged: (val) => onMonthChanged(val!),
+    return GestureDetector(
+      key: rowKey,
+      onTap: () {
+        if (rowKey != null) {
+          _scrollIntoView(rowKey);
+        }
+      },
+      child: Row(
+        children: [
+          Expanded(
+            child: _dropdownField(
+              value: month,
+              items: months,
+              onChanged: (val) => onMonthChanged(val!),
+            ),
           ),
-        ),
-        SizedBox(width: 14.4.w),
-        Expanded(
-          child: _dropdownField(
-            value: year,
-            items: years,
-            onChanged: (val) => onYearChanged(val!),
+          SizedBox(width: 14.4.w),
+          Expanded(
+            child: _dropdownField(
+              value: year,
+              items: years,
+              onChanged: (val) => onYearChanged(val!),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
-}
-
-class EnsureVisibleWhenFocused extends StatefulWidget {
-  final FocusNode focusNode;
-  final Widget child;
-
-  const EnsureVisibleWhenFocused({
-    super.key,
-    required this.focusNode,
-    required this.child,
-  });
-
-  @override
-  State<EnsureVisibleWhenFocused> createState() =>
-      _EnsureVisibleWhenFocusedState();
-}
-
-class _EnsureVisibleWhenFocusedState extends State<EnsureVisibleWhenFocused> {
-  @override
-  void initState() {
-    super.initState();
-    widget.focusNode.addListener(_ensureVisible);
-  }
-
-  @override
-  void dispose() {
-    widget.focusNode.removeListener(_ensureVisible);
-    super.dispose();
-  }
-
-  void _ensureVisible() {
-    if (widget.focusNode.hasFocus) {
-      final RenderObject? object = context.findRenderObject();
-      if (object is RenderBox) {
-        final ScrollableState? scrollable = Scrollable.of(context);
-        if (scrollable != null) {
-          final position = scrollable.position;
-          position.ensureVisible(
-            object,
-            alignment: 0.0,
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeInOut,
-          );
-        }
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) => widget.child;
 }

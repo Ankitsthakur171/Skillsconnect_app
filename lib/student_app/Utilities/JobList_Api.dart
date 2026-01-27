@@ -145,6 +145,10 @@ class JobApi {
         final String applyUrl =
             (job['apply_url'] ?? job['job_profile_url'] ?? '').toString();
 
+        final endDateRaw = job['end_date']?.toString();
+        if (endDateRaw != null) {
+          print('[JobList_Api] Job "$title" has end_date: $endDateRaw');
+        }
         return {
           'title': title,
           'company': company,
@@ -160,6 +164,7 @@ class JobApi {
           'job_id': jobId,
           'slug': slug,
           'applyUrl': applyUrl,
+          'end_date': endDateRaw,
         };
       }).toList();
     } on http.ClientException catch (e) {

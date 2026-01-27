@@ -148,7 +148,43 @@ class ProjectsSection extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        const Spacer(),
+                        Container(
+                          padding: EdgeInsets.all(5.w),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEBF6F7),
+                            borderRadius: BorderRadius.circular(10.r),
+                          ),
+                          child: Icon(
+                            proj.type?.toLowerCase() == 'internship'
+                                ? Icons.school
+                                : Icons.folder_open,
+                            size: 22.w,
+                            color: const Color(0xFF005E6A),
+                          ),
+                        ),
+                        SizedBox(width: 8.w),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                proj.projectName ?? 'Unknown',
+                                style: TextStyle(
+                                  fontSize: 15.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFF005E6A),
+                                ),
+                              ),
+                              Text(
+                                '${proj.type ?? 'N/A'} • ${proj.companyName ?? 'N/A'}',
+                                style: TextStyle(
+                                  fontSize: 12.sp,
+                                  color: const Color(0xFF6F6F6F),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                         IconButton(
                           icon: const Icon(Icons.edit,
                               color: Color(0xFF005E6A)),
@@ -227,22 +263,30 @@ class ProjectsSection extends StatelessWidget {
                         ),
                       ],
                     ),
-                    SizedBox(height: 4.h),
-                    Text(
-                      'Project Name : ${proj.projectName}',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13.sp,
-                        color: const Color(0xFF005E6A),
+                    if (proj.duration?.isNotEmpty ?? false)
+                      Padding(
+                        padding: EdgeInsets.only(top: 8.h),
+                        child: Text(
+                          'Duration : ${proj.duration}',
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            color: const Color(0xFF6F6F6F),
+                          ),
+                        ),
                       ),
-                    ),
-                    Text(
-                      'Company Name : ${proj.companyName}',
-                      style: TextStyle(
-                        fontSize: 13.sp,
-                        color: const Color(0xFF003840),
+                    if (proj.details?.isNotEmpty ?? false)
+                      Padding(
+                        padding: EdgeInsets.only(top: 4.h),
+                        child: Text(
+                          'Details : ${proj.details}',
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            color: const Color(0xFF6F6F6F),
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                    ),
                   ],
                 ),
               );

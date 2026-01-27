@@ -9,6 +9,10 @@ class JobDetailApi {
     required String token,
     int? moduleId,
   }) async {
+    print('[JobDetailApi] 🚀 fetchJobDetail called:');
+    print('[JobDetailApi]   token="${token.isEmpty ? "EMPTY" : token}"');
+    print('[JobDetailApi]   moduleId=$moduleId');
+    
     if ((token.isEmpty) && (moduleId == null || moduleId == 0)) {
       throw Exception('Job token and moduleId are both missing.');
     }
@@ -35,6 +39,8 @@ class JobDetailApi {
 
     final hasId = moduleId != null && moduleId > 0;
     final hasToken = token.trim().isNotEmpty;
+
+    print('[JobDetailApi] hasId=$hasId, hasToken=$hasToken');
 
     final Map<String, dynamic> byId = {
       'job_id': (moduleId ?? 0).toString(),

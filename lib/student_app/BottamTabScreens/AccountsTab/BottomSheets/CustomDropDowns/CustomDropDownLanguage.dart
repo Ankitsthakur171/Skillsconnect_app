@@ -186,6 +186,7 @@ class _CustomFieldLanguageDropdownState<T>
                                 child: _filteredItems.isEmpty
                                     ? const Center(child: Text('No items available'))
                                     : Scrollbar(
+                                        thumbVisibility: true,
                                   child: ListView.builder(
                                     padding: EdgeInsets.zero,
                                     itemCount: _filteredItems.length,

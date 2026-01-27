@@ -49,11 +49,18 @@ class loginUser {
       final match = RegExp(r'connect\.sid=([^;]+)').firstMatch(rawCookie);
       if (match != null) connectSid = match.group(1) ?? '';
 
+      print('🔐 [LoginUserApi] Extracted Connect SID: ${connectSid.isEmpty ? "EMPTY" : "OK (${connectSid.length} chars)"}');
+
       if (status == 200 && token != null && token.isNotEmpty) {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString(_kAuthToken, token);
         await prefs.setString(_kAuthTokenLegacy, token);
-        await prefs.setString(_kConnectSid, connectSid);
+        if (connectSid.isNotEmpty) {
+          await prefs.setString(_kConnectSid, connectSid);
+          print('✅ [LoginUserApi] Saved Connect SID to SharedPreferences');
+        } else {
+          print('⚠️ [LoginUserApi] Connect SID was empty - NOT saving to SharedPreferences');
+        }
 
         // Update FCM token after successful login
         try {

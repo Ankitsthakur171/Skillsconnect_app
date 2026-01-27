@@ -182,7 +182,8 @@ class _AsyncSearchableDropdownFieldState
         }
       }
 
-      _focusNode.requestFocus();
+      // Removed auto-focus to prevent keyboard from opening automatically
+      // _focusNode.requestFocus();
     } else {
       debugPrint('[AsyncDropdown] closing overlay');
       _removeOverlay();

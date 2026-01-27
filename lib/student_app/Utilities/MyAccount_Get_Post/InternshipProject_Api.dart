@@ -117,12 +117,12 @@ class InternshipProjectApi {
     print('🔖 internshipId=$internshipId');
 
     final cookieParts = <String>[];
+    if (authToken.isNotEmpty) cookieParts.add('authToken=$authToken');
     if (connectSid.isNotEmpty) cookieParts.add('connect.sid=$connectSid');
     final cookieHeader = cookieParts.isNotEmpty ? cookieParts.join('; ') : '';
 
     var headers = {
       'Content-Type': 'application/json',
-      'Authorization': 'Bearer $authToken',
       if (cookieHeader.isNotEmpty) 'Cookie': cookieHeader,
     };
     var url = Uri.parse(

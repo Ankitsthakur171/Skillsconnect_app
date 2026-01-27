@@ -23,6 +23,9 @@ class EditProjectDetailsBottomSheet extends StatefulWidget {
 
 class _EditProjectDetailsBottomSheetState extends State<EditProjectDetailsBottomSheet> with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
+
+  ScrollController? _sheetScrollController;
+
   late String type;
   late TextEditingController projectNameController;
   late TextEditingController companyNameController;
@@ -98,52 +101,54 @@ class _EditProjectDetailsBottomSheetState extends State<EditProjectDetailsBottom
   @override
   void initState() {
     super.initState();
-    print('🔍 [EditProjectDetailsBottomSheet] Initializing');
+
     type = widget.initialData?.type ?? 'Project';
     durationPeriod = widget.initialData?.durationPeriod ?? 'Days';
+
     projectNameController = TextEditingController(text: widget.initialData?.projectName ?? '');
     companyNameController = TextEditingController(text: widget.initialData?.companyName ?? '');
     skillsController = TextEditingController(text: widget.initialData?.skills ?? '');
     durationController = TextEditingController(text: widget.initialData?.duration ?? '');
     detailsController = TextEditingController(text: widget.initialData?.details ?? '');
-    _typeFocusNode.addListener(() => _handleFocusChange(_typeKey, _typeFocusNode, 'Type'));
-    _projectNameFocusNode.addListener(() => _handleFocusChange(_projectNameKey, _projectNameFocusNode, 'Project Name'));
-    _companyNameFocusNode.addListener(() => _handleFocusChange(_companyNameKey, _companyNameFocusNode, 'Company Name'));
-    _skillsFocusNode.addListener(() => _handleFocusChange(_skillsKey, _skillsFocusNode, 'Skills'));
-    _durationFocusNode.addListener(() => _handleFocusChange(_durationKey, _durationFocusNode, 'Duration'));
-    _durationPeriodFocusNode.addListener(() => _handleFocusChange(_durationPeriodKey, _durationPeriodFocusNode, 'Duration Period'));
-    _detailsFocusNode.addListener(() => _handleFocusChange(_detailsKey, _detailsFocusNode, 'Details'));
-    print('🔍 [EditProjectDetailsBottomSheet] Loaded initial data: ${widget.initialData?.projectName ?? 'N/A'}');
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: this,
-    );
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeIn),
-    );
+
+    _projectNameFocusNode.addListener(() => _onFieldFocus(_projectNameFocusNode, _projectNameKey));
+    _companyNameFocusNode.addListener(() => _onFieldFocus(_companyNameFocusNode, _companyNameKey));
+    _skillsFocusNode.addListener(() => _onFieldFocus(_skillsFocusNode, _skillsKey));
+    _durationFocusNode.addListener(() => _onFieldFocus(_durationFocusNode, _durationKey));
+    _detailsFocusNode.addListener(() => _onFieldFocus(_detailsFocusNode, _detailsKey));
+
+    _animationController =
+        AnimationController(vsync: this, duration: const Duration(milliseconds: 300));
+    _fadeAnimation =
+        CurvedAnimation(parent: _animationController, curve: Curves.easeIn);
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _animationController.forward();
     });
   }
 
-  void _handleFocusChange(GlobalKey key, FocusNode focusNode, String field) {
-    if (focusNode.hasFocus) {
-      print('🔍 [EditProjectDetailsBottomSheet] Focus changed to: $field');
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (key.currentContext != null) {
-          Scrollable.ensureVisible(
-            key.currentContext!,
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
-          );
-        }
-      });
-    }
+  void _onFieldFocus(FocusNode node, GlobalKey key) {
+    if (!node.hasFocus) return;
+    _scrollIntoView(key);
+  }
+
+  void _scrollIntoView(GlobalKey targetKey) {
+    final ctx = targetKey.currentContext;
+    if (ctx == null) return;
+
+    Future.delayed(const Duration(milliseconds: 120), () {
+      if (!mounted) return;
+      Scrollable.ensureVisible(
+        ctx,
+        duration: const Duration(milliseconds: 320),
+        curve: Curves.easeOutCubic,
+        alignment: 0.12,
+      );
+    });
   }
 
   @override
   void dispose() {
-    // print('🔍 [EditProjectDetailsBottomSheet] Disposing controllers and focus nodes');
     projectNameController.dispose();
     companyNameController.dispose();
     skillsController.dispose();
@@ -252,9 +257,10 @@ class _EditProjectDetailsBottomSheetState extends State<EditProjectDetailsBottom
     return DraggableScrollableSheet(
       expand: false,
       initialChildSize: 0.9,
-      maxChildSize: 0.9,
-      minChildSize: 0.9,
+      maxChildSize: 0.95,
+      minChildSize: 0.8,
       builder: (context, scrollController) {
+        _sheetScrollController = scrollController;
         return GestureDetector(
           onTap: () => FocusScope.of(context).unfocus(),
           child: FadeTransition(
@@ -272,8 +278,7 @@ class _EditProjectDetailsBottomSheetState extends State<EditProjectDetailsBottom
               ),
               child: Form(
                 key: _formKey,
-                child: ListView(
-                  controller: scrollController,
+                child: Column(
                   children: [
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -289,23 +294,30 @@ class _EditProjectDetailsBottomSheetState extends State<EditProjectDetailsBottom
                         IconButton(
                           icon: Icon(Icons.close, color: const Color(0xFF005E6A), size: 17.7.w),
                           onPressed: () {
-                            // keep close behavior as before
                             Navigator.of(context).pop();
                           },
                         ),
                       ],
                     ),
-                    _buildLabel("Project Type"),
-                    CustomFieldProjectDropdown(
-                      ['Internship', 'Project'],
-                      type,
-                          (val) {
-                        setState(() => type = val ?? 'Project');
-                        print('🔍 [EditProjectDetailsBottomSheet] Project type changed to: $val');
-                      },
-                      key: _typeKey,
-                      label: 'Please select',
-                    ),
+                    Expanded(
+                      child: ListView(
+                        controller: scrollController,
+                        physics: const BouncingScrollPhysics(),
+                        padding: EdgeInsets.only(bottom: 18.h),
+                        children: [
+                        _buildLabel("Project Type"),
+                        GestureDetector(
+                          key: _typeKey,
+                          onTap: () => _scrollIntoView(_typeKey),
+                          child: CustomFieldProjectDropdown(
+                            ['Internship', 'Project'],
+                            type,
+                            (val) {
+                              setState(() => type = val ?? 'Project');
+                            },
+                            label: 'Please select',
+                          ),
+                        ),
                     _buildLabel("Project Name"),
                     _buildTextField(
                       "Project Name",
@@ -339,53 +351,59 @@ class _EditProjectDetailsBottomSheetState extends State<EditProjectDetailsBottom
                       focusNode: _durationFocusNode,
                       hintText: 'Enter duration like 14',
                     ),
-                    _buildLabel("Duration Period"),
-                    CustomFieldProjectDropdown(
-                      ['Days', 'Weeks', 'Month'],
-                      durationPeriod,
-                          (val) {
-                        setState(() => durationPeriod = val ?? 'Days');
-                        print('🔍 [EditProjectDetailsBottomSheet] Duration period changed to: $val');
-                      },
-                      key: _durationPeriodKey,
-                      label: 'Please select',
-                    ),
-                    _buildLabel("Project Details"),
-                    _buildTextField(
-                      "Add Details",
-                      detailsController,
-                      maxLines: 4,
-                      key: _detailsKey,
-                      focusNode: _detailsFocusNode,
-                      hintText: 'Describe the project and your role',
-                    ),
-                    SizedBox(height: 27.1.h),
-                    ElevatedButton(
-                      onPressed: saving ? null : _handleSave,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF005E6A),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(27.1.r),
+                        _buildLabel("Duration Period"),
+                        GestureDetector(
+                          key: _durationPeriodKey,
+                          onTap: () => _scrollIntoView(_durationPeriodKey),
+                          child: CustomFieldProjectDropdown(
+                            ['Days', 'Weeks', 'Month'],
+                            durationPeriod,
+                            (val) {
+                              setState(() => durationPeriod = val ?? 'Days');
+                            },
+                            label: 'Please select',
+                          ),
                         ),
-                        minimumSize: Size.fromHeight(45.1.h),
-                      ),
-                      child: saving
-                          ? SizedBox(
-                        height: 18.1.h,
-                        width: 18.1.w,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 1.8.w,
-                          color: Colors.white,
+                        _buildLabel("Project Details"),
+                        _buildTextField(
+                          "Add Details",
+                          detailsController,
+                          maxLines: 4,
+                          key: _detailsKey,
+                          focusNode: _detailsFocusNode,
+                          hintText: 'Describe the project and your role',
                         ),
-                      )
-                          : Text(
-                        'Save',
-                        style: TextStyle(color: Colors.white, fontSize: 13.7.sp),
-                      ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                  SizedBox(height: 5.h),
+                  ElevatedButton(
+                    onPressed: saving ? null : _handleSave,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF005E6A),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(27.1.r),
+                      ),
+                      minimumSize: Size.fromHeight(45.1.h),
+                    ),
+                    child: saving
+                        ? SizedBox(
+                      height: 18.1.h,
+                      width: 18.1.w,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 1.8.w,
+                        color: Colors.white,
+                      ),
+                    )
+                        : Text(
+                      'Save',
+                      style: TextStyle(color: Colors.white, fontSize: 13.7.sp),
+                    ),
+                  ),
+                  SizedBox(height: 30.h),
+                ],
               ),
+            ),
             ),
           ),
         );

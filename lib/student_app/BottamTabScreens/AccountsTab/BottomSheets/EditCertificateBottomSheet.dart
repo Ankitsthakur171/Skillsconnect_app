@@ -28,6 +28,25 @@ class _EditCertificateBottomSheetState extends State<EditCertificateBottomSheet>
   late TextEditingController _urlController;
   late TextEditingController _descriptionController;
 
+  // Focus + keys to auto-scroll the active control into view
+  late FocusNode _certificateNameFocus;
+  late FocusNode _issuedOrgFocus;
+  late FocusNode _credIdFocus;
+  late FocusNode _urlFocus;
+  late FocusNode _descriptionFocus;
+
+  final GlobalKey _certificateNameKey = GlobalKey();
+  final GlobalKey _issuedOrgKey = GlobalKey();
+  final GlobalKey _credIdKey = GlobalKey();
+  final GlobalKey _urlKey = GlobalKey();
+  final GlobalKey _descriptionKey = GlobalKey();
+  final GlobalKey _issueDateKey = GlobalKey();
+  final GlobalKey _expiryDateKey = GlobalKey();
+
+  ScrollController? _sheetScrollController;
+
+
+
   String _issueMonth = 'Jan';
   String _issueYear = '2025';
   String _expiryMonth = 'Jan';
@@ -88,8 +107,9 @@ class _EditCertificateBottomSheetState extends State<EditCertificateBottomSheet>
   @override
   void initState() {
     super.initState();
-    print('🔍 [EditCertificateBottomSheet] Initializing');
+
     final data = widget.initialData;
+
     _certificateNameController =
         TextEditingController(text: data?.certificateName ?? '');
     _issuedOrgController =
@@ -98,6 +118,22 @@ class _EditCertificateBottomSheetState extends State<EditCertificateBottomSheet>
     _urlController = TextEditingController(text: data?.url ?? '');
     _descriptionController =
         TextEditingController(text: data?.description ?? '');
+
+    _certificateNameFocus = FocusNode()
+      ..addListener(() =>
+          _onFieldFocus(_certificateNameFocus, _certificateNameKey));
+    _issuedOrgFocus = FocusNode()
+      ..addListener(() =>
+          _onFieldFocus(_issuedOrgFocus, _issuedOrgKey));
+    _credIdFocus = FocusNode()
+      ..addListener(() =>
+          _onFieldFocus(_credIdFocus, _credIdKey));
+    _urlFocus = FocusNode()
+      ..addListener(() =>
+          _onFieldFocus(_urlFocus, _urlKey));
+    _descriptionFocus = FocusNode()
+      ..addListener(() =>
+          _onFieldFocus(_descriptionFocus, _descriptionKey));
 
     if (data != null) {
       final issueParts = data.issueDate.split('-');
@@ -110,44 +146,63 @@ class _EditCertificateBottomSheetState extends State<EditCertificateBottomSheet>
         _expiryYear = expiryParts[0];
         _expiryMonth = CertificateModel.numberToMonth(expiryParts[1]);
       }
-      print(
-          '🔍 [EditCertificateBottomSheet] Loaded initial data: ${data.certificateName ?? 'N/A'}');
     }
 
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: this,
-    );
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeIn),
-    );
+    _animationController =
+        AnimationController(vsync: this, duration: const Duration(milliseconds: 300));
+    _fadeAnimation = CurvedAnimation(
+        parent: _animationController, curve: Curves.easeIn);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _animationController.forward();
     });
   }
 
+  void _onFieldFocus(FocusNode node, GlobalKey key) {
+    if (!node.hasFocus) return;
+    _scrollIntoView(key);
+  }
+
+  void _scrollIntoView(GlobalKey targetKey) {
+    final ctx = targetKey.currentContext;
+    if (ctx == null) return;
+
+    Future.delayed(const Duration(milliseconds: 120), () {
+      if (!mounted) return;
+      Scrollable.ensureVisible(
+        ctx,
+        duration: const Duration(milliseconds: 320),
+        curve: Curves.easeOutCubic,
+        alignment: 0.12,
+      );
+    });
+  }
+
   @override
   void dispose() {
-    print('🔍 [EditCertificateBottomSheet] Disposing controllers');
     _certificateNameController.dispose();
     _issuedOrgController.dispose();
     _credIdController.dispose();
     _urlController.dispose();
     _descriptionController.dispose();
+
+    _certificateNameFocus.dispose();
+    _issuedOrgFocus.dispose();
+    _credIdFocus.dispose();
+    _urlFocus.dispose();
+    _descriptionFocus.dispose();
+
     _animationController.dispose();
     super.dispose();
   }
 
   Future<void> _handleSave() async {
     if (!_formKey.currentState!.validate()) {
-      print('⚠️ [EditCertificateBottomSheet] Form validation failed');
       _showSnackBarOnce(context, 'Please correct the errors before saving',
           backgroundColor: Colors.red);
       return;
     }
 
-    print('🔍 [EditCertificateBottomSheet] Saving certificate');
     setState(() => isSaving = true);
 
     final certificate = CertificateModel(
@@ -190,9 +245,10 @@ class _EditCertificateBottomSheetState extends State<EditCertificateBottomSheet>
     return DraggableScrollableSheet(
       expand: false,
       initialChildSize: 0.9,
-      maxChildSize: 0.9,
-      minChildSize: 0.9,
+      maxChildSize: 0.95,
+      minChildSize: 0.8,
       builder: (context, scrollController) {
+        _sheetScrollController = scrollController;
         return GestureDetector(
           onTap: () => FocusScope.of(context).unfocus(),
           child: FadeTransition(
@@ -202,7 +258,7 @@ class _EditCertificateBottomSheetState extends State<EditCertificateBottomSheet>
                 left: 14.4.w,
                 right: 14.4.w,
                 top: 9.h,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 9.h,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 18.h,
               ),
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -237,25 +293,48 @@ class _EditCertificateBottomSheetState extends State<EditCertificateBottomSheet>
                     Expanded(
                       child: ListView(
                         controller: scrollController,
+                        physics: const BouncingScrollPhysics(),
                         children: [
                           _buildLabel('Certificate Name'),
-                          _buildTextField(_certificateNameController,
-                              hintText: 'Enter certificate name'),
+                          _buildTextField(
+                            _certificateNameController,
+                            hintText: 'Enter certificate name',
+                            focusNode: _certificateNameFocus,
+                            fieldKey: _certificateNameKey,
+                          ),
                           _buildLabel('Issued Organization'),
-                          _buildTextField(_issuedOrgController,
-                              hintText: 'Enter issuing organization'),
+                          _buildTextField(
+                            _issuedOrgController,
+                            hintText: 'Enter issuing organization',
+                            focusNode: _issuedOrgFocus,
+                            fieldKey: _issuedOrgKey,
+                          ),
                           _buildLabel('Credential ID'),
-                          _buildTextField(_credIdController,
-                              hintText: 'Enter credential ID', required: false),
+                          _buildTextField(
+                            _credIdController,
+                            hintText: 'Enter credential ID',
+                            required: false,
+                            focusNode: _credIdFocus,
+                            fieldKey: _credIdKey,
+                          ),
                           _buildLabel('Credential URL'),
-                          _buildTextField(_urlController,
-                              hintText: 'Enter credential URL',
-                              required: false),
+                          _buildTextField(
+                            _urlController,
+                            hintText: 'Enter credential URL',
+                            required: false,
+                            focusNode: _urlFocus,
+                            fieldKey: _urlKey,
+                          ),
                           _buildLabel('Description'),
-                          _buildTextField(_descriptionController,
-                              hintText: 'Enter description', required: false),
+                          _buildTextField(
+                            _descriptionController,
+                            hintText: 'Enter description',
+                            required: false,
+                            focusNode: _descriptionFocus,
+                            fieldKey: _descriptionKey,
+                          ),
                           _buildLabel('Issued Date'),
-                          _buildDateRow(_issueMonth, _issueYear, (m) {
+                          _buildDateRow(_issueMonth, _issueYear, _issueDateKey, (m) {
                             setState(() => _issueMonth = m);
                             print(
                                 '🔍 [EditCertificateBottomSheet] Issue month changed to: $m');
@@ -265,7 +344,7 @@ class _EditCertificateBottomSheetState extends State<EditCertificateBottomSheet>
                                 '🔍 [EditCertificateBottomSheet] Issue year changed to: $y');
                           }),
                           _buildLabel('Expiry Date'),
-                          _buildDateRow(_expiryMonth, _expiryYear, (m) {
+                          _buildDateRow(_expiryMonth, _expiryYear, _expiryDateKey, (m) {
                             setState(() => _expiryMonth = m);
                             print(
                                 '🔍 [EditCertificateBottomSheet] Expiry month changed to: $m');
@@ -322,11 +401,13 @@ class _EditCertificateBottomSheetState extends State<EditCertificateBottomSheet>
       );
 
   Widget _buildTextField(TextEditingController controller,
-      {String hintText = '', bool required = true}) {
+      {String hintText = '', bool required = true, FocusNode? focusNode, Key? fieldKey}) {
     return Padding(
       padding: EdgeInsets.only(bottom: 10.8.h),
       child: TextFormField(
+        key: fieldKey,
         controller: controller,
+        focusNode: focusNode,
         decoration: InputDecoration(
           hintText: hintText,
           hintStyle: TextStyle(fontSize: 12.4.sp),
@@ -344,43 +425,52 @@ class _EditCertificateBottomSheetState extends State<EditCertificateBottomSheet>
     );
   }
 
-  Widget _buildDateRow(String month, String year,
+    Widget _buildDateRow(String month, String year, GlobalKey rowKey,
       Function(String) onMonthChanged, Function(String) onYearChanged) {
     return Padding(
       padding: EdgeInsets.only(bottom: 10.8.h),
       child: Row(
+        key: rowKey,
         children: [
           Expanded(
-            child: CustomFieldCertificateDropdown(
-              const [
-                'Jan',
-                'Feb',
-                'Mar',
-                'Apr',
-                'May',
-                'Jun',
-                'Jul',
-                'Aug',
-                'Sep',
-                'Oct',
-                'Nov',
-                'Dec'
-              ],
-              month,
-              (val) => onMonthChanged(val ?? 'Jan'),
-              label: 'Month',
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTapDown: (_) => _scrollIntoView(rowKey),
+              child: CustomFieldCertificateDropdown(
+                const [
+                  'Jan',
+                  'Feb',
+                  'Mar',
+                  'Apr',
+                  'May',
+                  'Jun',
+                  'Jul',
+                  'Aug',
+                  'Sep',
+                  'Oct',
+                  'Nov',
+                  'Dec'
+                ],
+                month,
+                (val) => onMonthChanged(val ?? 'Jan'),
+                label: 'Month',
+              ),
             ),
           ),
           SizedBox(width: 10.8.w),
           Expanded(
-            child: CustomFieldCertificateDropdown(
-              _yearItems()
-                  .map((item) => item.value!)
-                  .whereType<String>()
-                  .toList(),
-              year,
-              (val) => onYearChanged(val ?? '2025'),
-              label: 'Year',
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTapDown: (_) => _scrollIntoView(rowKey),
+              child: CustomFieldCertificateDropdown(
+                _yearItems()
+                    .map((item) => item.value!)
+                    .whereType<String>()
+                    .toList(),
+                year,
+                (val) => onYearChanged(val ?? '2025'),
+                label: 'Year',
+              ),
             ),
           ),
         ],

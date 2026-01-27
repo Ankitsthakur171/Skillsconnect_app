@@ -9,6 +9,8 @@ class PopularJobCard extends StatelessWidget {
   final String time;
   final String immageAsset;
   final VoidCallback? onTap;
+  final VoidCallback? onApply;
+  final bool isEligible;
 
   const PopularJobCard({
     super.key,
@@ -19,6 +21,8 @@ class PopularJobCard extends StatelessWidget {
     required this.time,
     required this.immageAsset,
     this.onTap,
+    this.onApply,
+    this.isEligible = true,
   });
 
   @override
@@ -39,7 +43,7 @@ class PopularJobCard extends StatelessWidget {
         ),
         child: Container(
           width: 270.8.w,
-          padding: EdgeInsets.symmetric(horizontal: 14.4.w, vertical: 10.8.h),
+          padding: EdgeInsets.symmetric(horizontal: 13.w, vertical: 10.h),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -48,22 +52,22 @@ class PopularJobCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   ClipRRect(
-                    borderRadius: BorderRadius.circular(7.2.r),
+                    borderRadius: BorderRadius.circular(7.r),
                     child: Image.network(
                       immageAsset,
-                      width: 36.1.w,
-                      height: 36.1.h,
+                      width: 34.w,
+                      height: 34.h,
                       fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) => Container(
-                        width: 36.1.w,
-                        height: 36.1.h,
+                        width: 34.w,
+                        height: 34.h,
                         color: Colors.grey[300],
                         child: Icon(Icons.image_not_supported,
-                            size: 18.1.sp, color: Colors.grey[600]),
+                            size: 17.sp, color: Colors.grey[600]),
                       ),
                     ),
                   ),
-                  SizedBox(width: 10.8.w),
+                  SizedBox(width: 10.w),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -75,17 +79,17 @@ class PopularJobCard extends StatelessWidget {
                           style: TextStyle(
                             color: const Color(0xFF1A73E8),
                             fontWeight: FontWeight.w600,
-                            fontSize: 14.4.sp,
+                            fontSize: 13.5.sp,
                           ),
                         ),
-                        SizedBox(height: 3.6.h),
+                        SizedBox(height: 3.h),
                         Text(
                           subtitile,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             fontWeight: FontWeight.w500,
-                            fontSize: 12.6.sp,
+                            fontSize: 12.sp,
                             color: Colors.grey[600],
                           ),
                         ),
@@ -94,19 +98,20 @@ class PopularJobCard extends StatelessWidget {
                   ),
                 ],
               ),
-              SizedBox(height: 10.8.h),
+              SizedBox(height: 9.h),
               Text(
                 description,
-                maxLines: 2,
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 11.7.sp,
-                  color: Colors.grey[800],
-                  height: 1.4,
+                  fontSize: 11.sp,
+                  color: Colors.grey[700],
+                  height: 1.2,
                 ),
               ),
-              SizedBox(height: 10.8.h),
-              Divider(thickness: 0.7, color: Colors.grey.withOpacity(0.4)),
+              SizedBox(height: 7.h),
+              Divider(thickness: 0.6, color: Colors.grey.withOpacity(0.35)),
+              SizedBox(height: 5.h),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -118,7 +123,7 @@ class PopularJobCard extends StatelessWidget {
                       style: TextStyle(
                         color: const Color(0xFF34A853),
                         fontWeight: FontWeight.w600,
-                        fontSize: 13.5.sp,
+                        fontSize: 12.sp,
                       ),
                     ),
                   ),
@@ -130,13 +135,39 @@ class PopularJobCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.right,
                       style: TextStyle(
-                        fontSize: 10.8.sp,
+                        fontSize: 9.5.sp,
                         color: Colors.grey[500],
                         fontWeight: FontWeight.w400,
                       ),
                     ),
                   ),
                 ],
+              ),
+              SizedBox(height: 7.h),
+              SizedBox(
+                width: double.infinity,
+                height: 34.h,
+                child: ElevatedButton(
+                  onPressed: isEligible ? onApply : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isEligible
+                        ? const Color(0xFF0D9488)
+                        : Colors.grey[400],
+                    disabledBackgroundColor: Colors.grey[400],
+                    padding: EdgeInsets.symmetric(vertical: 5.h),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(7.r),
+                    ),
+                  ),
+                  child: Text(
+                    isEligible ? 'Apply' : 'Not Eligible',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 11.sp,
+                    ),
+                  ),
+                ),
               ),
             ],
           ),

@@ -164,6 +164,7 @@ class _JobScreenbtState extends State<Jobscreenbt> {
             (map['cost_to_company'] ?? map['salary'])?.toString() ?? 'N/A';
         map['created_on'] = map['created_on'] ?? map['postTime'] ?? 'N/A';
         map['company_logo'] = map['company_logo'] ?? map['logoUrl'];
+        map['end_date'] = map['end_date'];
 
         if ((map['three_cities_name'] == null ||
             (map['three_cities_name'] as String?)?.isEmpty == true)) {
@@ -459,6 +460,7 @@ class _JobScreenbtState extends State<Jobscreenbt> {
             (map['cost_to_company'] ?? map['salary'])?.toString() ?? 'N/A';
         map['created_on'] = map['created_on'] ?? map['postTime'] ?? 'N/A';
         map['company_logo'] = map['company_logo'] ?? map['logoUrl'];
+        map['end_date'] = map['end_date'];
 
         if ((map['three_cities_name'] == null ||
             (map['three_cities_name'] as String?)?.isEmpty == true)) {
@@ -721,6 +723,7 @@ class _JobScreenbtState extends State<Jobscreenbt> {
               tags: jm.tags,
               logoUrl: jm.logoUrl,
               jobType: jm.jobType,
+              endDate: jm.endDate,
               onTap: ({
                 required int jobId,
                 required int recordId,
@@ -774,6 +777,7 @@ class _JobScreenbtState extends State<Jobscreenbt> {
               tags: jm.tags,
               logoUrl: jm.logoUrl,
               jobType: jm.jobType,
+              endDate: jm.endDate,
               onTap: ({
                 required int jobId,
                 required int recordId,
@@ -829,6 +833,7 @@ class _JobScreenbtState extends State<Jobscreenbt> {
               tags: jm.tags,
               logoUrl: jm.logoUrl,
               jobType: jm.jobType,
+              endDate: jm.endDate,
               onTap: ({
                 required int jobId,
                 required int recordId,

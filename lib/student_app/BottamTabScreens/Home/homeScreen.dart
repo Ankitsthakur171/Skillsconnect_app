@@ -18,6 +18,9 @@ import '../../blocpage/bloc_event.dart';
 import '../../blocpage/bloc_logic.dart';
 import '../JobTab/JobdetailPage/JobdetailpageBT.dart';
 import 'CustomAppbarBT.dart';
+import 'DashboardHeaderSection.dart';
+import '../../Utilities/MyAccount_Get_Post/HomeScreenDashboard_Api.dart';
+import '../../Model/Dashboard_Model.dart';
 import 'KnowHowBanner.dart';
 import 'PopularJobCard.dart';
 import 'FeaturedJobCard.dart';
@@ -41,6 +44,8 @@ class _HomeScreen2State extends State<HomeScreen2> {
   bool _hasInternet = true;
   bool _isRetrying = false;
   bool _showShimmer = true;
+  DashboardData? _dashboardData;
+  bool _isLoadingDashboard = true;
 
   void _onItemTapped(int index) {
     setState(() {
@@ -53,6 +58,7 @@ class _HomeScreen2State extends State<HomeScreen2> {
   void initState() {
     super.initState();
     _checkInternetAndFetch();
+    _fetchDashboardData();
     Future.delayed(const Duration(seconds: 1), () {
       if (!mounted) return;
       setState(() => _showShimmer = false);
@@ -90,6 +96,33 @@ class _HomeScreen2State extends State<HomeScreen2> {
       _isRetrying = false;
       _showShimmer = false;
     });
+  }
+
+  Future<void> _fetchDashboardData() async {
+    try {
+      print('📊 [HomeScreen2] Fetching dashboard data...');
+      final data = await HomeScreenDashboardApi.fetchDashboard();
+      
+      print('📊 [HomeScreen2] Dashboard data result: ${data != null ? "SUCCESS" : "NULL"}');
+      
+      if (mounted) {
+        setState(() {
+          _dashboardData = data;
+          _isLoadingDashboard = false;
+          if (data != null) {
+            print('✅ [HomeScreen2] Dashboard data loaded - Profile: ${data.profile.name}');
+          } else {
+            print('⚠️ [HomeScreen2] Dashboard data is null - API may have failed');
+          }
+        });
+      }
+    } catch (e, st) {
+      print('❌ [HomeScreen2] Error fetching dashboard: $e');
+      print('   Stack: $st');
+      if (mounted) {
+        setState(() => _isLoadingDashboard = false);
+      }
+    }
   }
 
   Future<void> _fetchHomeData() async {
@@ -238,6 +271,36 @@ class _HomeScreen2State extends State<HomeScreen2> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Dashboard Header Section
+                    if (_dashboardData != null && !_isLoadingDashboard)
+                      DashboardHeaderSection(
+                        profile: _dashboardData!.profile,
+                        stats: _dashboardData!.stats,
+                        latestApplication: _dashboardData!.myApplications.isNotEmpty
+                            ? _dashboardData!.myApplications.first
+                            : null,
+                        onViewLatestApplication: () {
+                          if (_dashboardData!.myApplications.isNotEmpty) {
+                            final app = _dashboardData!.myApplications.first;
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => JobDetailPage2(
+                                  jobToken: app.jobId.toString(),
+                                  moduleId: app.jobId,
+                                ),
+                              ),
+                            );
+                          }
+                        },
+                      )
+                    else if (_isLoadingDashboard)
+                      Padding(
+                        padding: EdgeInsets.all(16.h),
+                        child: const Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                      ),
                     _sectionHeader("Popular Jobs", actionText: "See all",
                       onActionTap: () {
                       setState(() => _selectedIndex = 1);
@@ -245,39 +308,75 @@ class _HomeScreen2State extends State<HomeScreen2> {
                     },),
                     SizedBox(
                       height: popularJobListHeight.clamp(171.5.h, 189.5.h),
-                      child: _isLoadingPopular || _showShimmer
+                      child: _isLoadingPopular || _showShimmer || _dashboardData == null
                           ? const Center(child: PopularJobShimmer())
-                          : _popularJobs.isEmpty
+                          : _dashboardData!.opportunityFeed.isEmpty
                               ? Center(
-                                  child: Text("No popular jobs found",
+                                  child: Text("No opportunities found",
                                       style: TextStyle(fontSize: 12.4.sp)))
                               : ListView.builder(
                                   scrollDirection: Axis.horizontal,
                                   padding:
                                       EdgeInsets.symmetric(horizontal: 12.6.w),
-                                  itemCount: _popularJobs.length,
+                                  itemCount: _dashboardData!.opportunityFeed.length,
                                   itemBuilder: (context, index) {
-                                    final job = _popularJobs[index];
+                                    final opportunity = _dashboardData!.opportunityFeed[index];
                                     return PopularJobCard(
-                                      title: job.jobName,
-                                      subtitile: job.companyName,
-                                      description:
-                                          'Exciting opportunity at ${job.companyName}',
-                                      salary:
-                                          "${job.salaryMin}-${job.salaryMax} LPA",
-                                      time: "Posted on ${job.postedOn}",
-                                      immageAsset: job.companyLogo,
+                                      title: opportunity.role,
+                                      subtitile: opportunity.company,
+                                      description: '${opportunity.type} • ${opportunity.location}',
+                                      salary: opportunity.stipend,
+                                      time: 'Deadline: ${opportunity.deadline}',
+                                      immageAsset: '',
+                                      isEligible: opportunity.eligible,
                                       onTap: () {
+                                        // Use jobInvitationToken if available, otherwise use id
+                                        final tokenToUse = opportunity.jobInvitationToken.isNotEmpty 
+                                          ? opportunity.jobInvitationToken 
+                                          : opportunity.id;
+                                        final jobIdToUse = opportunity.jobId > 0 
+                                          ? opportunity.jobId 
+                                          : (int.tryParse(opportunity.id) ?? 0);
+                                        
+                                        print('🔗 [HomeScreen] Navigate to JobDetail via onTap:');
+                                        print('   tokenToUse: "$tokenToUse"');
+                                        print('   jobIdToUse: $jobIdToUse');
+                                        print('   (original jobInvitationToken: "${opportunity.jobInvitationToken}", jobId: ${opportunity.jobId})');
+                                        
                                         Navigator.push(
                                           context,
                                           MaterialPageRoute(
                                             builder: (_) => JobDetailPage2(
-                                              jobToken: job.jobId.toString(),
-                                              moduleId: job.jobId,
+                                              jobToken: tokenToUse,
+                                              moduleId: jobIdToUse,
                                             ),
                                           ),
                                         );
                                       },
+                                      onApply: opportunity.eligible ? () {
+                                        // Use jobInvitationToken if available, otherwise use id
+                                        final tokenToUse = opportunity.jobInvitationToken.isNotEmpty 
+                                          ? opportunity.jobInvitationToken 
+                                          : opportunity.id;
+                                        final jobIdToUse = opportunity.jobId > 0 
+                                          ? opportunity.jobId 
+                                          : (int.tryParse(opportunity.id) ?? 0);
+                                        
+                                        print('✅ [HomeScreen] Navigate to JobDetail via Apply button:');
+                                        print('   tokenToUse: "$tokenToUse"');
+                                        print('   jobIdToUse: $jobIdToUse');
+                                        print('   (original jobInvitationToken: "${opportunity.jobInvitationToken}", jobId: ${opportunity.jobId})');
+                                        
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) => JobDetailPage2(
+                                              jobToken: tokenToUse,
+                                              moduleId: jobIdToUse,
+                                            ),
+                                          ),
+                                        );
+                                      } : null,
                                     );
                                   },
                                 ),

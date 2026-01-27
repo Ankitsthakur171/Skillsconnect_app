@@ -12,6 +12,7 @@ class JobCardBT extends StatelessWidget {
   final String salary;
   final String postTime;
   final String expiry;
+  final String? endDate;
 
   final List<String> tags;
   final String? logoUrl;
@@ -35,10 +36,35 @@ class JobCardBT extends StatelessWidget {
     required this.postTime,
     required this.expiry,
     required this.tags,
-    // required this.endDate,
+    this.endDate,
     this.logoUrl,
     this.onTap,
   });
+
+  /// Calculate and return the time left display string
+  String _getTimeLeftDisplay() {
+    // Try to use endDate if available
+    if (endDate != null && endDate!.isNotEmpty) {
+      try {
+        final expireTime = DateTime.parse(endDate!);
+        final now = DateTime.now();
+        if (expireTime.isBefore(now)) {
+          return 'Expired';
+        }
+        final diff = expireTime.difference(now);
+        if (diff.inDays > 0) {
+          return '${diff.inDays} day${diff.inDays > 1 ? 's' : ''} left';
+        } else {
+          final hours = diff.inHours;
+          return '$hours hour${hours > 1 ? 's' : ''} left';
+        }
+      } catch (e) {
+        print('[JobCardBT] Error parsing endDate "$endDate": $e');
+      }
+    }
+    // Fallback to the static expiry value from API
+    return expiry;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -268,7 +294,7 @@ class JobCardBT extends StatelessWidget {
                       border: Border.all(color: const Color(0xFFDAA5A5)),
                     ),
                     child: Text(
-                      expiry,
+                      _getTimeLeftDisplay(),
                       style: TextStyle(
                         color: const Color(0xFFD03C2D),
                         fontSize: 12.sp,

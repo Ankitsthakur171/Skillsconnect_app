@@ -61,8 +61,7 @@ class _SearchableDropdownFieldState extends State<SearchableDropdownField> {
       _searchController.clear();
       _overlayEntry = _createOverlayEntry();
       Overlay.of(context).insert(_overlayEntry!);
-      // Removed auto-focus to prevent keyboard from opening automatically
-      // _focusNode.requestFocus();
+      _focusNode.requestFocus();
     } else {
       _removeOverlay();
     }
@@ -283,8 +282,7 @@ class _NonSearchableDropdownFieldState extends State<NonSearchableDropdownField>
       _searchController.clear();
       _overlayEntry = _createOverlayEntry();
       Overlay.of(context).insert(_overlayEntry!);
-      // Removed auto-focus to prevent keyboard from opening automatically
-      // _focusNode.requestFocus();
+      _focusNode.requestFocus();
     } else {
       _removeOverlay();
     }
@@ -376,7 +374,6 @@ class _NonSearchableDropdownFieldState extends State<NonSearchableDropdownField>
                     //                 .where((item) => item
                     //                 .toLowerCase()
                     //                 .contains(query.toLowerCase()))
-                    //                 .toSet()
                     //                 .toList();
                     //           });
                     //         });

@@ -74,7 +74,7 @@ class WorkExperienceApi {
             "✅ [saveWorkExperience] Work Experience Saved: ${decoded['msg']}");
         return true;
       } else {
-        print("❌ [saveWorkExperience] Failed to save. Details: $e");
+        print("❌ [saveWorkExperience] Failed to save. Status: ${response.statusCode}, Response: ${response.body}");
 
         return false;
       }

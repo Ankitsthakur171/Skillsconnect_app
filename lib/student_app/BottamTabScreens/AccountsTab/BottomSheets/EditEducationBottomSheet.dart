@@ -36,6 +36,9 @@ class EditEducationBottomSheet extends StatefulWidget {
 
 class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
     with SingleTickerProviderStateMixin {
+
+  ScrollController? _sheetScrollController;
+
   late TextEditingController _marksController;
   late TextEditingController _boardNameController;
   late TextEditingController _percentageController;
@@ -229,16 +232,23 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
 
   void _handleMarksFocusChange() {
     if (_marksFocusNode.hasFocus) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_marksFieldKey.currentContext != null) {
-          Scrollable.ensureVisible(
-            _marksFieldKey.currentContext!,
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
-          );
-        }
-      });
+      _scrollIntoView(_marksFieldKey);
     }
+  }
+
+  void _scrollIntoView(GlobalKey targetKey) {
+    final ctx = targetKey.currentContext;
+    if (ctx == null) return;
+
+    Future.delayed(const Duration(milliseconds: 120), () {
+      if (!mounted) return;
+      Scrollable.ensureVisible(
+        ctx,
+        duration: const Duration(milliseconds: 320),
+        curve: Curves.easeOutCubic,
+        alignment: 0.12,
+      );
+    });
   }
 
   Future<void> _fetchBoardsAndMediums() async {
@@ -707,13 +717,18 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
     debugPrint('[$now] $msg');
   }
 
+  String? _lastErrorMessage;
+
   Future<void> _attemptPostAndSave(Map<String, dynamic> payload) async {
     if (!mounted) return;
     setState(() => isLoading = true);
+    _lastErrorMessage = null;
 
     bool posted = false;
     final stopwatch = Stopwatch()..start();
     _debugLog('🔔 _attemptPostAndSave START');
+    _debugLog('📊 Current degreeName: "$degreeName", degreeId: "$degreeId"');
+    _debugLog('📊 _isSchoolDegree: $_isSchoolDegree');
 
     try {
       final payloadJson = jsonEncode(payload);
@@ -722,7 +737,7 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
 
       if (_isSchoolDegree) {
         final Map<String, dynamic> body = {};
-        body['degreeType'] = payload['degreeType']?.toString() ?? '5';
+        body['degreeType'] = payload['degreeId']?.toString() ?? degreeId?.toString() ?? '5';
 
         if (boardId != null && boardId!.isNotEmpty) {
           body['boardName'] = boardId;
@@ -758,6 +773,8 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
               widget.initialData!.basicEducationId!.toString();
         }
 
+        _debugLog('🏫 BasicEducation body: ${jsonEncode(body)}');
+
         try {
           final swInner = Stopwatch()..start();
           posted =
@@ -767,6 +784,7 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
               'BasicEducation POST result: $posted (elapsed=${swInner.elapsedMilliseconds}ms)');
         } catch (e, st) {
           posted = false;
+          _lastErrorMessage = e.toString();
           _debugLog('🔥 Exception BasicEducation POST: $e\n$st');
         }
       } else {
@@ -774,6 +792,8 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
 
         if (degreeId != null && degreeId!.isNotEmpty) {
           body['degreeType'] = degreeId;
+        } else if (payload['degreeId'] != null) {
+          body['degreeType'] = payload['degreeId'].toString();
         } else if (payload['degreeType'] != null) {
           body['degreeType'] = payload['degreeType'].toString();
         }
@@ -824,11 +844,13 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
               'HigherEducation POST result: $posted (elapsed=${swInner.elapsedMilliseconds}ms)');
         } catch (e, st) {
           posted = false;
+          _lastErrorMessage = e.toString();
           _debugLog('🔥 Exception HigherEducation POST: $e\n$st');
         }
       }
     } catch (e, st) {
       posted = false;
+      _lastErrorMessage = e.toString();
       _debugLog('🔥 Error in _attemptPostAndSave: $e');
       _debugLog('Stacktrace:\n$st');
     } finally {
@@ -844,8 +866,8 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
       _showSnackBarOnce(context, 'Saved successfully.',
           backgroundColor: Colors.green);
     } else {
-      _showSnackBarOnce(context, 'Save failed. Check console logs for details.',
-          cooldownSeconds: 6);
+      final errorMsg = _lastErrorMessage ?? 'Save failed. Check console logs for details.';
+      _showSnackBarOnce(context, errorMsg, cooldownSeconds: 6);
     }
 
     try {
@@ -965,9 +987,10 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
     return DraggableScrollableSheet(
       expand: false,
       initialChildSize: 0.9,
-      maxChildSize: 0.9,
-      minChildSize: 0.9,
+      maxChildSize: 0.95,
+      minChildSize: 0.8,
       builder: (context, scrollController) {
+        _sheetScrollController = scrollController;
         return GestureDetector(
           onTap: () => FocusScope.of(context).unfocus(),
           child: FadeTransition(
@@ -1011,11 +1034,10 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
                         Expanded(
                           child: ListView(
                             controller: scrollController,
-                            physics: const AlwaysScrollableScrollPhysics(),
+                            physics: const BouncingScrollPhysics(),
                             padding: EdgeInsets.only(
                               top: 9.h,
-                              bottom:
-                                  MediaQuery.of(context).padding.bottom + 24.h,
+                              bottom: 18.h,
                             ),
                             children: [
                               _buildLabel('Degree Type'),
@@ -1257,34 +1279,35 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
                                       setState(() => passingMonth = val ?? ''),
                                 ),
                               ],
-                              SizedBox(height: 27.1.h),
-                              ElevatedButton(
-                                onPressed: _saving ? null : _onSavePressed,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF005E6A),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(27.1.r),
-                                  ),
-                                  minimumSize: Size.fromHeight(45.1.h),
-                                ),
-                                child: _saving
-                                    ? SizedBox(
-                                        height: 18.1.h,
-                                        width: 18.1.w,
-                                        child: const CircularProgressIndicator(
-                                            strokeWidth: 1.8,
-                                            color: Colors.white
-                                        ),
-                                      )
-                                    : Text(
-                                    'Save',
-                                        style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 13.7.sp)),
-                              ),
                             ],
                           ),
                         ),
+                        SizedBox(height: 18.h),
+                        ElevatedButton(
+                          onPressed: _saving ? null : _onSavePressed,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF005E6A),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(27.1.r),
+                            ),
+                            minimumSize: Size.fromHeight(45.1.h),
+                          ),
+                          child: _saving
+                              ? SizedBox(
+                                  height: 18.1.h,
+                                  width: 18.1.w,
+                                  child: const CircularProgressIndicator(
+                                      strokeWidth: 1.8,
+                                      color: Colors.white
+                                  ),
+                                )
+                              : Text(
+                                  'Save',
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 13.7.sp)),
+                        ),
+                        SizedBox(height: 50.h),
                       ],
                     ),
             ),

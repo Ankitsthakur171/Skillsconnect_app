@@ -57,8 +57,9 @@ class CertificateApi {
 
       var headers = {
         'Content-Type': 'application/json',
+        'Authorization': 'Bearer $authToken',
         'Cookie':
-            'authToken=$authToken${connectSid.isNotEmpty ? '; connect.sid=$connectSid' : ''}',
+          'authToken=$authToken${connectSid.isNotEmpty ? '; connect.sid=$connectSid' : ''}',
       };
 
       final payload = Jwt.parseJwt(authToken);

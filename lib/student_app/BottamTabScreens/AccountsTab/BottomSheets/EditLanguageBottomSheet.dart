@@ -128,7 +128,7 @@ class _LanguageBottomSheetState extends State<LanguageBottomSheet>
       }
 
       setState(() {
-        masterLanguages = langs;
+        masterLanguages = langs.reversed.toList(); // Reverse order to show bottom ones first
         selectedLanguage = selectedFromApi;
         isLoading = false;
       });

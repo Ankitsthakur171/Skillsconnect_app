@@ -21,6 +21,7 @@ import '../../../Utilities/MyAccount_Get_Post/Image_Api.dart';
 import '../../../Utilities/MyAccount_Get_Post/InternshipProject_Api.dart';
 import '../../../Utilities/MyAccount_Get_Post/LanguagesGet_Api.dart';
 import '../../../Utilities/MyAccount_Get_Post/PersonalDetail_Api.dart';
+import '../../../Utilities/MyAccount_Get_Post/ProfilePicture_Api.dart';
 import '../../../Utilities/MyAccount_Get_Post/Skills_Api.dart';
 import '../../../Utilities/MyAccount_Get_Post/WorkExperience_Api.dart';
 import '../BottomSheets/EditCertificateBottomSheet.dart';
@@ -71,6 +72,7 @@ class _MyAccountState extends State<MyAccount> {
   bool isLoadingLanguages = true;
   bool isLoadingPersonalDetail = true;
   File? _profileImage;
+  bool _isUploadingProfilePicture = false;
   ProfileCompletionModel? profileCompletion;
   bool isLoadingProfilePercentage = true;
   bool _snackBarShown = false;
@@ -822,9 +824,79 @@ class _MyAccountState extends State<MyAccount> {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: source, imageQuality: 85);
     if (pickedFile != null) {
+      final imageFile = File(pickedFile.path);
       setState(() {
-        _profileImage = File(pickedFile.path);
+        _profileImage = imageFile;
       });
+      
+      // Upload the image to server
+      await _uploadProfilePicture(imageFile);
+    }
+  }
+
+  Future<void> _uploadProfilePicture(File imageFile) async {
+    setState(() {
+      _isUploadingProfilePicture = true;
+    });
+
+    try {
+      final blobUrl = await ProfilePictureApi.uploadProfilePicture(
+        imageFile: imageFile,
+      );
+
+      if (!mounted) return;
+
+      if (blobUrl != null) {
+        // Success - reload profile image from API to get the updated image
+        await _loadProfileImageFromApi();
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Profile picture updated successfully',
+                style: TextStyle(fontSize: 13.sp),
+              ),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      } else {
+        // Failed
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Failed to upload profile picture. Please try again.',
+                style: TextStyle(fontSize: 13.sp),
+              ),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('❌ [MyAccount] Upload error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Error uploading profile picture: $e',
+              style: TextStyle(fontSize: 13.sp),
+            ),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploadingProfilePicture = false;
+        });
+      }
     }
   }
 
@@ -832,71 +904,74 @@ class _MyAccountState extends State<MyAccount> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      useSafeArea: true,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(14.r)),
       ),
-      builder: (_) {
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: Icon(
-                  Icons.photo_library_outlined,
-                  color: const Color(0xFF005E6A),
-                  size: 22.w,
-                ),
-                title: Text(
-                  'Choose from Gallery',
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    color: const Color(0xFF003840),
-                  ),
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                  _pickImage(ImageSource.gallery);
-                },
-              ),
-              ListTile(
-                leading: Icon(
-                  Icons.camera_alt_outlined,
-                  color: const Color(0xFF005E6A),
-                  size: 22.w,
-                ),
-                title: Text(
-                  'Take a Photo',
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    color: const Color(0xFF003840),
-                  ),
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                  _pickImage(ImageSource.camera);
-                },
-              ),
-              if (_profileImage != null)
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(height: 8.h),
                 ListTile(
                   leading: Icon(
-                    Icons.delete_outline,
-                    color: Colors.red,
+                    Icons.photo_library_outlined,
+                    color: const Color(0xFF005E6A),
                     size: 22.w,
                   ),
                   title: Text(
-                    'Remove Image',
-                    style: TextStyle(fontSize: 14.sp, color: Colors.red),
+                    'Choose from Gallery',
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      color: const Color(0xFF003840),
+                    ),
                   ),
                   onTap: () {
                     Navigator.pop(context);
-                    setState(() => _profileImage = null);
+                    _pickImage(ImageSource.gallery);
                   },
                 ),
-            ],
+                ListTile(
+                  leading: Icon(
+                    Icons.camera_alt_outlined,
+                    color: const Color(0xFF005E6A),
+                    size: 22.w,
+                  ),
+                  title: Text(
+                    'Take a Photo',
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      color: const Color(0xFF003840),
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickImage(ImageSource.camera);
+                  },
+                ),
+                if (_profileImage != null)
+                  ListTile(
+                    leading: Icon(
+                      Icons.delete_outline,
+                      color: Colors.red,
+                      size: 22.w,
+                    ),
+                    title: Text(
+                      'Clear Local Preview',
+                      style: TextStyle(fontSize: 14.sp, color: Colors.red),
+                    ),
+                    onTap: () {
+                      Navigator.pop(context);
+                      setState(() => _profileImage = null);
+                    },
+                  ),
+                SizedBox(height: 8.h),
+              ],
+            ),
           ),
         );
       },
@@ -1246,9 +1321,7 @@ class _MyAccountState extends State<MyAccount> {
                             final prefs = await SharedPreferences.getInstance();
                             final authToken =
                                 prefs.getString('authToken') ?? '';
-                            final connectSid =
-                                prefs.getString('connectSid') ?? '';
-                            if (authToken.isEmpty || connectSid.isEmpty) {
+                            if (authToken.isEmpty) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text('Error: Please log in again.'),
@@ -1342,11 +1415,8 @@ class _MyAccountState extends State<MyAccount> {
                                     final connectSid =
                                         prefs.getString('connectSid') ?? '';
 
-                                    if (authToken.isEmpty ||
-                                        connectSid.isEmpty) {
-                                      throw Exception(
-                                        'Missing auth token or session ID',
-                                      );
+                                    if (authToken.isEmpty) {
+                                      throw Exception('Missing auth token');
                                     }
                                     await CertificateApi.saveCertificateApi(
                                       model: certif,
@@ -1388,11 +1458,8 @@ class _MyAccountState extends State<MyAccount> {
                                     final connectSid =
                                         prefs.getString('connectSid') ?? '';
 
-                                    if (authToken.isEmpty ||
-                                        connectSid.isEmpty) {
-                                      throw Exception(
-                                        'Missing auth token or session ID',
-                                      );
+                                    if (authToken.isEmpty) {
+                                      throw Exception('Missing auth token');
                                     }
 
                                     await CertificateApi.saveCertificateApi(
@@ -1483,9 +1550,11 @@ class _MyAccountState extends State<MyAccount> {
                                         authToken: authToken,
                                         connectSid: connectSid,
                                       );
-                                  if (success)
+                                  if (success) {
                                     await fetchWorkExperienceDetails();
-                                  Navigator.pop(context);
+                                    Navigator.pop(context);
+                                  }
+                                  return success;
                                 },
                               ),
                             );
@@ -1510,9 +1579,11 @@ class _MyAccountState extends State<MyAccount> {
                                         authToken: authToken,
                                         connectSid: connectSid,
                                       );
-                                  if (success)
+                                  if (success) {
                                     await fetchWorkExperienceDetails();
-                                  Navigator.pop(context);
+                                    Navigator.pop(context);
+                                  }
+                                  return success;
                                 },
                               ),
                             );
@@ -1664,21 +1735,64 @@ class _MyAccountState extends State<MyAccount> {
                 ),
               ),
             ),
+            // Show uploading indicator
+            if (_isUploadingProfilePicture)
+              Container(
+                width: 140.w,
+                height: 140.w,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.black54,
+                ),
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        strokeWidth: 3.w,
+                      ),
+                      SizedBox(height: 8.h),
+                      Text(
+                        'Uploading...',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             Positioned(
               bottom: 8.h,
               right: 8.w,
               child: GestureDetector(
-                onTap: () {
-                  handleTap(context, _showImagePickerOption);
-                },
+                onTap: _isUploadingProfilePicture 
+                  ? null 
+                  : () {
+                      handleTap(context, _showImagePickerOption);
+                    },
                 child: CircleAvatar(
                   backgroundColor: Colors.white,
                   radius: 16.r,
-                  child: Icon(
-                    Icons.camera_alt_outlined,
-                    size: 20.w,
-                    color: const Color(0xFF005E6A),
-                  ),
+                  child: _isUploadingProfilePicture
+                    ? SizedBox(
+                        width: 20.w,
+                        height: 20.w,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.w,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            const Color(0xFF005E6A),
+                          ),
+                        ),
+                      )
+                    : Icon(
+                        Icons.camera_alt_outlined,
+                        size: 20.w,
+                        color: const Color(0xFF005E6A),
+                      ),
                 ),
               ),
             ),
