@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'ApiConstants.dart';
+import '../../utils/session_guard.dart';
 
 class JoinInterview {
   final bool ok;
@@ -31,6 +32,9 @@ class JoinInterviewApi {
 
       final reqBody = jsonEncode({"meeting_id": meetingId});
       final resp = await http.post(Uri.parse(_endpoint), headers: headers, body: reqBody);
+
+      // Check for token expiry or unauthorized access
+      await SessionGuard.scan(statusCode: resp.statusCode, body: resp.body);
 
       if (resp.statusCode != 200) {
         return JoinInterview(

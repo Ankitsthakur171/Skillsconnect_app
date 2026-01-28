@@ -1,4 +1,3 @@
-/// Dashboard Models for Home Screen Redesign
 
 class DashboardData {
   final ProfileInfo profile;
@@ -130,6 +129,8 @@ class OpportunityFeedItem {
   final int jobId; // Job ID for API calls (optional - fallback to id)
   final String jobSlug; // Job slug (optional)
   final String jobInvitationToken; // Token for job detail API (optional - fallback to id)
+  final String companyLogo; // Company logo URL
+  final String costToCompany; // CTC value for LPA formatting
 
   OpportunityFeedItem({
     required this.id,
@@ -143,29 +144,47 @@ class OpportunityFeedItem {
     this.jobId = 0,
     this.jobSlug = '',
     this.jobInvitationToken = '',
+    this.companyLogo = '',
+    this.costToCompany = '',
   });
 
   factory OpportunityFeedItem.fromJson(Map<String, dynamic> json) {
+    // Safe string conversion helper
+    String safeToString(dynamic value) {
+      if (value == null) return '';
+      return value.toString().trim();
+    }
+
     // If jobInvitationToken is empty, fallback to id
-    final String invitationToken = (json['job_invitation_token'] ?? '').toString().trim();
-    final String fallbackToken = invitationToken.isNotEmpty ? invitationToken : (json['id'] ?? '').toString().trim();
+    final String invitationToken = safeToString(json['job_invitation_token']);
+    final String fallbackToken = invitationToken.isNotEmpty ? invitationToken : safeToString(json['id']);
     
     // If jobId is 0, try to parse id as fallback
-    final int jobIdValue = json['job_id'] ?? 0;
-    final int fallbackJobId = jobIdValue > 0 ? jobIdValue : (int.tryParse((json['id'] ?? '').toString()) ?? 0);
+    final int jobIdValue = (json['job_id'] is int) ? (json['job_id'] ?? 0) : (int.tryParse(safeToString(json['job_id'])) ?? 0);
+    final int fallbackJobId = jobIdValue > 0 ? jobIdValue : (int.tryParse(safeToString(json['id'])) ?? 0);
+    
+    // Safe bool conversion
+    bool safeToBool(dynamic value) {
+      if (value is bool) return value;
+      if (value is int) return value != 0;
+      if (value is String) return value.toLowerCase() == 'true';
+      return false;
+    }
     
     return OpportunityFeedItem(
-      id: json['id'] ?? '',
-      type: json['type'] ?? 'Job',
-      company: json['company'] ?? '',
-      role: json['role'] ?? '',
-      location: json['location'] ?? '',
-      stipend: json['stipend'] ?? '',
-      deadline: json['deadline'] ?? '',
-      eligible: json['eligible'] ?? false,
+      id: safeToString(json['id']),
+      type: safeToString(json['type']).isEmpty ? 'Job' : safeToString(json['type']),
+      company: safeToString(json['company']),
+      role: safeToString(json['role']),
+      location: safeToString(json['location']),
+      stipend: safeToString(json['stipend']),
+      deadline: safeToString(json['deadline']),
+      eligible: safeToBool(json['eligible']),
       jobId: fallbackJobId,
-      jobSlug: json['job_slug'] ?? '',
+      jobSlug: safeToString(json['job_slug']),
       jobInvitationToken: fallbackToken,
+      companyLogo: safeToString(json['company_logo']),
+      costToCompany: safeToString(json['cost_to_company']),
     );
   }
 }
@@ -194,10 +213,25 @@ class ApplicationItem {
   });
 
   factory ApplicationItem.fromJson(Map<String, dynamic> json) {
+    // Try to get company and role from the response
+    // If not available, use fallback or empty string
+    String company = json['company'] ?? '';
+    String role = json['role'] ?? json['job_title'] ?? '';
+    
+    // If still empty, try to format from job_slug
+    if (role.isEmpty && json['job_slug'] != null) {
+      // Convert slug like "trainee-ai-engineer-205219262" to "Trainee AI Engineer"
+      role = (json['job_slug'] as String)
+          .split('-')
+          .where((word) => !word.contains(RegExp(r'^\d+$')))
+          .map((word) => word[0].toUpperCase() + word.substring(1))
+          .join(' ');
+    }
+    
     return ApplicationItem(
       id: json['id'] ?? 0,
-      company: json['company'] ?? '',
-      role: json['role'] ?? '',
+      company: company,
+      role: role,
       type: json['type'] ?? 'Job',
       status: json['status'] ?? '',
       updated: json['updated'] ?? '',
@@ -230,26 +264,44 @@ class Alert {
 
 class InterviewScheduleItem {
   final int id;
-  final String when; // e.g., "2026-02-02 11:00"
+  final String interviewDate; // e.g., "2026-02-02"
+  final String startTime; // e.g., "11:00"
+  final String endTime; // e.g., "12:00"
+  final String interviewName; // e.g., "Personal Interview"
   final String role;
   final String company;
   final String mode; // e.g., 'manual', 'automated'
+  final String meetingLink; // URL for joining
+  final String meetingMode; // 'online', 'offline'
+  final String companyLogo; // Company logo URL
 
   InterviewScheduleItem({
     required this.id,
-    required this.when,
+    required this.interviewDate,
+    required this.startTime,
+    required this.endTime,
+    required this.interviewName,
     required this.role,
     required this.company,
     required this.mode,
+    required this.meetingLink,
+    required this.meetingMode,
+    required this.companyLogo,
   });
 
   factory InterviewScheduleItem.fromJson(Map<String, dynamic> json) {
     return InterviewScheduleItem(
       id: json['id'] ?? 0,
-      when: json['when'] ?? '',
-      role: json['role'] ?? '',
-      company: json['company'] ?? '',
-      mode: json['mode'] ?? '',
+      interviewDate: json['interview_date'] ?? json['when'] ?? '',
+      startTime: json['start_time'] ?? '',
+      endTime: json['end_time'] ?? '',
+      interviewName: json['interview_name'] ?? '',
+      role: json['job_title'] ?? '',
+      company: json['company_name'] ?? '',
+      mode: json['platform'] ?? 'manual',
+      meetingLink: json['meeting_link'] ?? '',
+      meetingMode: json['meeting_mode'] ?? 'online',
+      companyLogo: json['company_logo'] ?? '',
     );
   }
 }

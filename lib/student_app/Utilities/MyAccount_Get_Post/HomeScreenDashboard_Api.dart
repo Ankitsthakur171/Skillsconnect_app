@@ -35,11 +35,10 @@ class HomeScreenDashboardApi {
         headers['Cookie'] = cookieParts.join('; ');
       }
 
-      // Build URL - dashboard endpoint is NOT under /mobile/ path
-      // Use baseUrl + projectId instead of subUrl (which includes /mobile/)
+      // Build URL - dashboard endpoint is now under /mobile/ path
       final url = customUrl != null 
           ? Uri.parse(customUrl)
-          : Uri.parse('https://api.skillsconnect.in/dcxqyqzqpdydfk/website/dashboard/student');
+          : Uri.parse('https://api.skillsconnect.in/dcxqyqzqpdydfk/mobile/dashboard/student');
       print('📍 URL: $url');
 
       final response = await http
@@ -67,11 +66,17 @@ class HomeScreenDashboardApi {
         return null;
       }
 
+      print('📋 Dashboard response data keys: ${data.keys}');
+      if (data['opportunityFeed'] != null) {
+        print('📋 First opportunity sample: ${(data['opportunityFeed'] as List?)?.first}');
+      }
+
       final dashboard = DashboardData.fromJson(data);
       print('✅ Dashboard loaded: ${dashboard.profile.name}');
       return dashboard;
-    } catch (e) {
+    } catch (e, st) {
       print('❌ Error: $e');
+      print('❌ Stacktrace: $st');
       return null;
     }
   }

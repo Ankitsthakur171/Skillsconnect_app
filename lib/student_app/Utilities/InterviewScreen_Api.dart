@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../Model/InterviewScreen_Model.dart';
 import 'ApiConstants.dart';
+import '../../utils/session_guard.dart';
 
 /// Keep your old fetchInterviews if you like, but add this helper which
 /// returns both parsed list and raw JSON and supports If-None-Match (ETag).
@@ -33,10 +34,15 @@ class InterviewApi {
 
       if (response.statusCode == 200) {
         final body = await response.stream.bytesToString();
+        // Check for token expiry or unauthorized access
+        await SessionGuard.scan(statusCode: response.statusCode, body: body);
         final jsonData = json.decode(body);
         final List<dynamic> data = jsonData['scheduled_meeting_list'] ?? [];
         return data.map((item) => InterviewModel.fromJson(item)).toList();
       } else {
+        final body = await response.stream.bytesToString();
+        // Check for token expiry or unauthorized access
+        await SessionGuard.scan(statusCode: response.statusCode, body: body);
         print('Failed with status: ${response.statusCode}');
         return [];
       }
@@ -73,8 +79,11 @@ class InterviewApi {
       request.headers.addAll(headers);
       http.StreamedResponse response = await request.send();
 
+      final body = await response.stream.bytesToString();
+      // Check for token expiry or unauthorized access
+      await SessionGuard.scan(statusCode: response.statusCode, body: body);
+
       if (response.statusCode == 200) {
-        final body = await response.stream.bytesToString();
         final jsonData = json.decode(body);
         final List<dynamic> data = jsonData['scheduled_meeting_list'] ?? [];
         final parsed = data.map((item) => InterviewModel.fromJson(item)).toList();

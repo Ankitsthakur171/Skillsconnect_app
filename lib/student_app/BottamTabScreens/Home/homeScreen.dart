@@ -23,7 +23,9 @@ import '../../Utilities/MyAccount_Get_Post/HomeScreenDashboard_Api.dart';
 import '../../Model/Dashboard_Model.dart';
 import 'KnowHowBanner.dart';
 import 'PopularJobCard.dart';
+import 'InterviewScheduleCard.dart';
 import 'FeaturedJobCard.dart';
+import 'ProfileCompletionCard.dart';
 import 'package:http/http.dart' as http;
 
 class HomeScreen2 extends StatefulWidget {
@@ -295,19 +297,14 @@ class _HomeScreen2State extends State<HomeScreen2> {
                         },
                       )
                     else if (_isLoadingDashboard)
-                      Padding(
-                        padding: EdgeInsets.all(16.h),
-                        child: const Center(
-                          child: CircularProgressIndicator(),
-                        ),
-                      ),
+                      _buildDashboardHeaderShimmer(),
                     _sectionHeader("Popular Jobs", actionText: "See all",
                       onActionTap: () {
                       setState(() => _selectedIndex = 1);
                       context.read<NavigationBloc>().add(GotoJobScreen2());
                     },),
                     SizedBox(
-                      height: popularJobListHeight.clamp(171.5.h, 189.5.h),
+                      height: popularJobListHeight.clamp(200.h, 220.h),
                       child: _isLoadingPopular || _showShimmer || _dashboardData == null
                           ? const Center(child: PopularJobShimmer())
                           : _dashboardData!.opportunityFeed.isEmpty
@@ -328,6 +325,8 @@ class _HomeScreen2State extends State<HomeScreen2> {
                                       salary: opportunity.stipend,
                                       time: 'Deadline: ${opportunity.deadline}',
                                       immageAsset: '',
+                                      companyLogo: opportunity.companyLogo,
+                                      costToCompany: opportunity.costToCompany,
                                       isEligible: opportunity.eligible,
                                       onTap: () {
                                         // Use jobInvitationToken if available, otherwise use id
@@ -382,31 +381,73 @@ class _HomeScreen2State extends State<HomeScreen2> {
                                 ),
                     ),
                     SizedBox(height: 10.h),
-                    Center(
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            "Tap to know more  ",
-                            style: TextStyle(color: Colors.grey.shade600),
+                    // Show Interview Schedule if available, otherwise show Banner
+                    if (_dashboardData != null && _dashboardData!.interviewSchedule.isNotEmpty)
+                      ...[
+                        _sectionHeader("Interview Schedule", actionText: "See all",
+                          onActionTap: () {
+                          setState(() => _selectedIndex = 2);
+                          context.read<NavigationBloc>().add(GoToInterviewScreen2());
+                        },),
+                        SizedBox(
+                          height: 250.h,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            padding: EdgeInsets.symmetric(horizontal: 12.6.w),
+                            itemCount: _dashboardData!.interviewSchedule.length,
+                            itemBuilder: (context, index) {
+                              final interview = _dashboardData!.interviewSchedule[index];
+                              return InterviewScheduleCard(
+                                interview: interview,
+                                onViewDetails: () {
+                                  context.read<NavigationBloc>().add(GoToInterviewScreen2());
+                                },
+                              );
+                            },
                           ),
-                          Icon(
-                            Icons.arrow_downward_rounded,
-                            color: Colors.grey.shade600,
-                            size: 16.sp,
+                        ),
+                        SizedBox(height: 9.h),
+                      ]
+                    else
+                      ...[
+                        Center(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                "Tap to know more  ",
+                                style: TextStyle(color: Colors.grey.shade600),
+                              ),
+                              Icon(
+                                Icons.arrow_downward_rounded,
+                                color: Colors.grey.shade600,
+                                size: 16.sp,
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
+                        _isLoadingBanners || _showShimmer
+                            ? const Center(child: KnowHowBannerShimmer())
+                            : _banners.isEmpty
+                                ? Center(
+                                    child: Text("No banners available",
+                                        style: TextStyle(fontSize: 12.4.sp)))
+                                : KnowHowBanner(banners: _banners),
+                        SizedBox(height: 9.h),
+                      ],
+                    _sectionHeader("Profile Completion"),
+                    if (_dashboardData != null && !_isLoadingDashboard)
+                      ProfileCompletionCard(
+                        completionPercentage: _dashboardData!.profile.completion,
+                      )
+                    else
+                      const Center(
+                        child: CircularProgressIndicator(),
                       ),
-                    ),
-                    _isLoadingBanners || _showShimmer
-                        ? const Center(child: KnowHowBannerShimmer())
-                        : _banners.isEmpty
-                            ? Center(
-                                child: Text("No banners available",
-                                    style: TextStyle(fontSize: 12.4.sp)))
-                            : KnowHowBanner(banners: _banners),
-                    SizedBox(height: 9.h),
+                    SizedBox(height: 15.4.h),
+                    // FEATURED OPPORTUNITIES SECTION COMMENTED OUT
+                    /* 
                     _sectionHeader("Featured Opportunities"),
                     SizedBox(
                       height: featuredJobListHeight.clamp(216.6.h, 243.7.h),
@@ -449,6 +490,7 @@ class _HomeScreen2State extends State<HomeScreen2> {
                                 ),
                     ),
                     SizedBox(height: 15.4.h),
+                    */
                   ],
                 ),
               ),
@@ -488,6 +530,88 @@ class _HomeScreen2State extends State<HomeScreen2> {
               ),
             ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildDashboardHeaderShimmer() {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+      child: Shimmer.fromColors(
+        baseColor: Colors.grey[300]!,
+        highlightColor: Colors.grey[100]!,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Welcome Section Shimmer
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        height: 12.h,
+                        width: 100.w,
+                        color: Colors.grey[300],
+                      ),
+                      SizedBox(height: 8.h),
+                      Container(
+                        height: 24.h,
+                        width: 150.w,
+                        color: Colors.grey[300],
+                      ),
+                      SizedBox(height: 8.h),
+                      Container(
+                        height: 12.h,
+                        width: 120.w,
+                        color: Colors.grey[300],
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(width: 16.w),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Container(
+                      height: 12.h,
+                      width: 80.w,
+                      color: Colors.grey[300],
+                    ),
+                    SizedBox(height: 12.h),
+                    Container(
+                      height: 10.h,
+                      width: 100.w,
+                      color: Colors.grey[300],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            SizedBox(height: 24.h),
+            
+            // Stats Grid Shimmer (2x2)
+            GridView.count(
+              crossAxisCount: 2,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              childAspectRatio: 1.3,
+              crossAxisSpacing: 12.w,
+              mainAxisSpacing: 12.w,
+              children: List.generate(
+                4,
+                (_) => Container(
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(8.r),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

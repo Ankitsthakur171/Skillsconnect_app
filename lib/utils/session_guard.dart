@@ -51,14 +51,34 @@ class SessionGuard {
 
     if (statusCode == 401) {
       print('🚨 [SessionGuard.scan] 401 detected - triggering logout');
-      // await _forceLogoutWithMessage('You are currently logged in on another device.'
-      //     ' Logging in here will log you out from the other device');
       await _forceLogoutWithMessage('You are currently logged in on another device.'
           ' Logging in here will log you out from the other device');
     } else if (statusCode == 403) {
       print('🚨 [SessionGuard.scan] 403 detected - triggering logout');
       await _forceLogoutWithMessage('Session expired.');
     } else {
+      // 🔸 NEW: Check response body for token expiry messages (some APIs return 200 but with error message)
+      if (body != null && body.isNotEmpty) {
+        try {
+          final jsonBody = jsonDecode(body);
+          final String? msg = jsonBody['msg'] ?? jsonBody['message'] ?? jsonBody['error'];
+          
+          if (msg != null) {
+            final msgLower = msg.toLowerCase();
+            if (msgLower.contains('token') && (msgLower.contains('expire') || msgLower.contains('invalid'))) {
+              print('🚨 [SessionGuard.scan] Token expiry detected in response body: $msg');
+              await _forceLogoutWithMessage('Session expired. Please login again.');
+              return;
+            }
+            if (msgLower.contains('unauthorized') || msgLower.contains('not authenticate')) {
+              print('🚨 [SessionGuard.scan] Unauthorized detected in response body: $msg');
+              await _forceLogoutWithMessage('Unauthorized access. Please login again.');
+              return;
+            }
+          }
+        } catch (_) {}
+      }
+      
       print('🔍 [SessionGuard.scan] statusCode $statusCode - no action needed');
     }
   }

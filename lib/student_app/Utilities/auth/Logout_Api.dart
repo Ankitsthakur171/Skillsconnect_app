@@ -2,6 +2,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:skillsconnect/utils/session_guard.dart';
 
 import '../ApiConstants.dart';
 
@@ -49,6 +50,9 @@ class LogoutApi {
 
       print('🔍 [LogoutApi] response.statusCode: $statusCode');
       print('🔍 [LogoutApi] response.body: $responseBody');
+
+      // Check for token expiry or unauthorized access
+      await SessionGuard.scan(statusCode: statusCode, body: responseBody);
 
       if (statusCode == 200) {
         try {

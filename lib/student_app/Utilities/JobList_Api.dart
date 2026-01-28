@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'ApiConstants.dart';
+import '../../utils/session_guard.dart';
 
 class JobApi {
   static Future<List<Map<String, dynamic>>> fetchJobs({
@@ -45,6 +46,9 @@ class JobApi {
 
       print("JobApi → Response Status Code: ${response.statusCode}");
       print("JobApi → Response Body: ${response.body}");
+
+      // Check for token expiry or unauthorized access
+      await SessionGuard.scan(statusCode: response.statusCode, body: response.body);
 
       if (response.statusCode != 200) {
         throw Exception(
