@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:intl/intl.dart';
 import '../../Model/Dashboard_Model.dart';
 import '../../Utilities/JoinInterviewApi.dart';
 
@@ -20,6 +21,26 @@ class InterviewScheduleCard extends StatefulWidget {
 
 class _InterviewScheduleCardState extends State<InterviewScheduleCard> {
   bool _isJoining = false;
+
+  // Helper function to format date
+  String _formatDate(String dateString) {
+    try {
+      final date = DateTime.parse(dateString);
+      return DateFormat('dd MMM yyyy').format(date);
+    } catch (e) {
+      return dateString;
+    }
+  }
+
+  // Helper function to format time to 12-hour format
+  String _formatTime(String timeString) {
+    try {
+      final time = DateFormat('HH:mm').parse(timeString);
+      return DateFormat('hh:mm a').format(time);
+    } catch (e) {
+      return timeString;
+    }
+  }
 
   void _joinMeeting() async {
     if (widget.interview.meetingLink.isEmpty) {
@@ -154,12 +175,12 @@ class _InterviewScheduleCardState extends State<InterviewScheduleCard> {
 
             /// Date & time
             Text(
-              '${widget.interview.interviewDate} • ${widget.interview.startTime} - ${widget.interview.endTime}',
+              '${_formatDate(widget.interview.interviewDate)} , ${_formatTime(widget.interview.startTime)} - ${_formatTime(widget.interview.endTime)}',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 12.sp,
-                color: Colors.grey[500],
+                fontSize: 13.sp,
+                color: Colors.grey[800],
               ),
             ),
 
@@ -193,65 +214,93 @@ class _InterviewScheduleCardState extends State<InterviewScheduleCard> {
             SizedBox(height: 10.h),
 
             /// Buttons
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: widget.onViewDetails,
-                    style: OutlinedButton.styleFrom(
-                      padding: EdgeInsets.symmetric(vertical: 8.h),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10.r),
-                      ),
-                      side: const BorderSide(
-                        color: Color(0xFF1A73E8),
-                        width: 1.5,
-                      ),
+            if (widget.interview.meetingMode == 'offline' || widget.interview.meetingMode == 'in-office')
+              // Offline/In-office: Only View Details button in center
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: widget.onViewDetails,
+                  style: OutlinedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(vertical: 8.h),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10.r),
                     ),
-                    child: Text(
-                      'View Details',
-                      style: TextStyle(
-                        color: const Color(0xFF1A73E8),
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12.sp,
-                      ),
+                    side: const BorderSide(
+                      color: Color(0xFF1A73E8),
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Text(
+                    'View Details',
+                    style: TextStyle(
+                      color: const Color(0xFF1A73E8),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12.sp,
                     ),
                   ),
                 ),
-                SizedBox(width: 10.w),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: _isJoining ? null : _joinMeeting,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF0D9488),
-                      disabledBackgroundColor: Colors.grey[400],
-                      padding: EdgeInsets.symmetric(vertical: 8.h),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10.r),
+              )
+            else
+              // Online: Both View Details and Join buttons side by side
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: widget.onViewDetails,
+                      style: OutlinedButton.styleFrom(
+                        padding: EdgeInsets.symmetric(vertical: 8.h),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10.r),
+                        ),
+                        side: const BorderSide(
+                          color: Color(0xFF1A73E8),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Text(
+                        'View Details',
+                        style: TextStyle(
+                          color: const Color(0xFF1A73E8),
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12.sp,
+                        ),
                       ),
                     ),
-                    child: _isJoining
-                        ? SizedBox(
-                            height: 16.h,
-                            width: 16.h,
-                            child: const CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor:
-                                  AlwaysStoppedAnimation<Color>(Colors.white),
-                            ),
-                          )
-                        : Text(
-                            'Join',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 12.sp,
-                            ),
-                          ),
                   ),
-                ),
-              ],
-            ),
+                  SizedBox(width: 10.w),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _isJoining ? null : _joinMeeting,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0D9488),
+                        disabledBackgroundColor: Colors.grey[400],
+                        padding: EdgeInsets.symmetric(vertical: 8.h),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10.r),
+                        ),
+                      ),
+                      child: _isJoining
+                          ? SizedBox(
+                              height: 16.h,
+                              width: 16.h,
+                              child: const CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor:
+                                    AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                          : Text(
+                              'Join',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12.sp,
+                              ),
+                            ),
+                    ),
+                  ),
+                ],
+              ),
           ],
         ),
       ),

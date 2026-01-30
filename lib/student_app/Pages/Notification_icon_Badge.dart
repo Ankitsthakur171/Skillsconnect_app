@@ -17,6 +17,7 @@ class NotificationBell extends StatefulWidget {
 
 class _NotificationBellState extends State<NotificationBell> {
   Timer? _pollTimer;
+  int _lastUnreadCount = 0; // Track last unread count to avoid unnecessary rebuilds
 
   bool _isUnread(AppNotification n) {
     final v = (n.readStatus).toString().trim().toLowerCase();
@@ -30,10 +31,15 @@ class _NotificationBellState extends State<NotificationBell> {
     if (!bloc.state.isLoading && bloc.state.notifications.isEmpty) {
       print('🔔 [NotificationBell] initState() -> triggering initial LoadNotifications');
       bloc.add(LoadNotifications());
+    } else {
+      // Set initial unread count
+      _lastUnreadCount = bloc.state.notifications.where(_isUnread).length;
     }
 
     // Lightweight polling to reflect new notifications without navigation.
-    _pollTimer = Timer.periodic(const Duration(seconds: 20), (_) {
+    // Only reloads if there's a potential new notification
+    _pollTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      print('🔔 [NotificationBell] Polling for new notifications...');
       context.read<NotificationBloc>().add(LoadNotifications());
     });
   }
@@ -47,8 +53,21 @@ class _NotificationBellState extends State<NotificationBell> {
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<NotificationBloc, NotificationState>(
+      buildWhen: (previous, current) {
+        // Only rebuild if unread count has changed from the last known count
+        final currUnreadCount = current.notifications.where(_isUnread).length;
+        
+        if (_lastUnreadCount != currUnreadCount) {
+          print('🔔 [NotificationBell] Unread count changed: $_lastUnreadCount → $currUnreadCount');
+          return true;
+        }
+        
+        return false;
+      },
       builder: (context, state) {
         final unreadCount = state.notifications.where(_isUnread).length;
+        _lastUnreadCount = unreadCount;
+        
         return Stack(
           clipBehavior: Clip.none,
           children: [

@@ -284,12 +284,19 @@ class _HomeScreen2State extends State<HomeScreen2> {
                         onViewLatestApplication: () {
                           if (_dashboardData!.myApplications.isNotEmpty) {
                             final app = _dashboardData!.myApplications.first;
+                            final tokenToUse = app.jobInvitationToken.isNotEmpty 
+                              ? app.jobInvitationToken 
+                              : app.id.toString();
+                            final jobIdToUse = app.jobId > 0 
+                              ? app.jobId 
+                              : (int.tryParse(app.id.toString()) ?? 0);
+                                    
                             Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (_) => JobDetailPage2(
-                                  jobToken: app.jobId.toString(),
-                                  moduleId: app.jobId,
+                                  jobToken: tokenToUse,
+                                  moduleId: jobIdToUse,
                                 ),
                               ),
                             );
@@ -329,19 +336,13 @@ class _HomeScreen2State extends State<HomeScreen2> {
                                       costToCompany: opportunity.costToCompany,
                                       isEligible: opportunity.eligible,
                                       onTap: () {
-                                        // Use jobInvitationToken if available, otherwise use id
                                         final tokenToUse = opportunity.jobInvitationToken.isNotEmpty 
                                           ? opportunity.jobInvitationToken 
                                           : opportunity.id;
                                         final jobIdToUse = opportunity.jobId > 0 
                                           ? opportunity.jobId 
                                           : (int.tryParse(opportunity.id) ?? 0);
-                                        
-                                        print('🔗 [HomeScreen] Navigate to JobDetail via onTap:');
-                                        print('   tokenToUse: "$tokenToUse"');
-                                        print('   jobIdToUse: $jobIdToUse');
-                                        print('   (original jobInvitationToken: "${opportunity.jobInvitationToken}", jobId: ${opportunity.jobId})');
-                                        
+                                    
                                         Navigator.push(
                                           context,
                                           MaterialPageRoute(
@@ -353,19 +354,13 @@ class _HomeScreen2State extends State<HomeScreen2> {
                                         );
                                       },
                                       onApply: opportunity.eligible ? () {
-                                        // Use jobInvitationToken if available, otherwise use id
                                         final tokenToUse = opportunity.jobInvitationToken.isNotEmpty 
                                           ? opportunity.jobInvitationToken 
                                           : opportunity.id;
                                         final jobIdToUse = opportunity.jobId > 0 
                                           ? opportunity.jobId 
                                           : (int.tryParse(opportunity.id) ?? 0);
-                                        
-                                        print('✅ [HomeScreen] Navigate to JobDetail via Apply button:');
-                                        print('   tokenToUse: "$tokenToUse"');
-                                        print('   jobIdToUse: $jobIdToUse');
-                                        print('   (original jobInvitationToken: "${opportunity.jobInvitationToken}", jobId: ${opportunity.jobId})');
-                                        
+                                                                    
                                         Navigator.push(
                                           context,
                                           MaterialPageRoute(
@@ -381,10 +376,10 @@ class _HomeScreen2State extends State<HomeScreen2> {
                                 ),
                     ),
                     SizedBox(height: 10.h),
-                    // Show Interview Schedule if available, otherwise show Banner
+                    // Show Interview Schedule if available, otherwise show banner (knwohowbanner)
                     if (_dashboardData != null && _dashboardData!.interviewSchedule.isNotEmpty)
                       ...[
-                        _sectionHeader("Interview Schedule", actionText: "See all",
+                        _sectionHeader("Interview Scheduled", actionText: "See all",
                           onActionTap: () {
                           setState(() => _selectedIndex = 2);
                           context.read<NavigationBloc>().add(GoToInterviewScreen2());
@@ -436,7 +431,7 @@ class _HomeScreen2State extends State<HomeScreen2> {
                                 : KnowHowBanner(banners: _banners),
                         SizedBox(height: 9.h),
                       ],
-                    _sectionHeader("Profile Completion"),
+                    _sectionHeader("Recommended Next Steps"),
                     if (_dashboardData != null && !_isLoadingDashboard)
                       ProfileCompletionCard(
                         completionPercentage: _dashboardData!.profile.completion,
@@ -591,7 +586,7 @@ class _HomeScreen2State extends State<HomeScreen2> {
               ],
             ),
             SizedBox(height: 24.h),
-            
+
             // Stats Grid Shimmer (2x2)
             GridView.count(
               crossAxisCount: 2,

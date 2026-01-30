@@ -52,7 +52,7 @@ class InterviewApi {
     }
   }
 
-  static Future<_FetchResult> fetchInterviewsRawAndParsed({String? ifNoneMatch}) async {
+  static Future<_FetchResult> fetchInterviewsRawAndParsed() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final authToken = prefs.getString('authToken') ?? '';
@@ -63,9 +63,6 @@ class InterviewApi {
         'Content-Type': 'application/json',
         'Cookie': 'authToken=$authToken; connect.sid=$connectSid',
       };
-      if (ifNoneMatch != null && ifNoneMatch.isNotEmpty) {
-        headers['If-None-Match'] = ifNoneMatch;
-      }
 
       var request = http.Request('POST', url);
       request.body = json.encode({
@@ -88,28 +85,19 @@ class InterviewApi {
         final List<dynamic> data = jsonData['scheduled_meeting_list'] ?? [];
         final parsed = data.map((item) => InterviewModel.fromJson(item)).toList();
 
-        final etag = response.headers['etag'];
-
-        final rawArrayJson = json.encode(data);
-
-        return _FetchResult(parsed: parsed, rawBody: rawArrayJson, notModified: false, etag: etag);
-      } else if (response.statusCode == 304) {
-        return _FetchResult(parsed: null, rawBody: null, notModified: true, etag: ifNoneMatch);
+        return _FetchResult(parsed: parsed);
       } else {
         print('InterviewApi fetch failed with status: ${response.statusCode}');
-        return _FetchResult(parsed: <InterviewModel>[], rawBody: null, notModified: false, etag: null);
+        return _FetchResult(parsed: <InterviewModel>[]);
       }
     } catch (e) {
       print('InterviewApi fetch error: $e');
-      return _FetchResult(parsed: <InterviewModel>[], rawBody: null, notModified: false, etag: null);
+      return _FetchResult(parsed: <InterviewModel>[]);
     }
   }
 }
 
 class _FetchResult {
   final List<InterviewModel>? parsed;
-  final String? rawBody;
-  final bool notModified;
-  final String? etag;
-  _FetchResult({this.parsed, this.rawBody, this.notModified = false, this.etag});
+  _FetchResult({this.parsed});
 }

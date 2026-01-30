@@ -316,7 +316,9 @@ class _SplashScreenState extends State<SplashScreen> {
             //
             // );
           } else if (state is AuthenticatedStudent) {
+            print('🔑 [SplashScreen] AuthenticatedStudent detected - enabling guard');
             SessionGuard.enable();   // 🔸 ab se scan kaam karega
+            print('🔑 [SplashScreen] Guard enabled, about to navigate StudentRoot');
             if (!context.mounted) return;
             Navigator.of(context).pushAndRemoveUntil(
               MaterialPageRoute(

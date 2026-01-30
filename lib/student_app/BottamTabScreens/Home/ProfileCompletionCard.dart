@@ -21,7 +21,7 @@ class ProfileCompletionCard extends StatelessWidget {
         color: Colors.white,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12.r),
-          side: BorderSide(
+            side: BorderSide(
             color: Colors.grey.withOpacity(0.3),
             width: 1,
           ),

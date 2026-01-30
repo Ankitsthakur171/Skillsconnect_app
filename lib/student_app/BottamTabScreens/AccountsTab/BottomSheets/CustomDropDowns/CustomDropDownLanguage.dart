@@ -7,6 +7,8 @@ class CustomFieldLanguageDropdown<T> extends StatefulWidget {
   final T? value;
   final ValueChanged<T?> onChanged;
   final String hintText;
+  final ScrollController? scrollController;
+  final VoidCallback? onLoadMore;
 
   const CustomFieldLanguageDropdown(
       this.items,
@@ -14,6 +16,8 @@ class CustomFieldLanguageDropdown<T> extends StatefulWidget {
       this.onChanged, {
         super.key,
         this.hintText = 'Please select',
+        this.scrollController,
+        this.onLoadMore,
       });
 
   @override
@@ -40,6 +44,16 @@ class _CustomFieldLanguageDropdownState<T>
     _focusNode.addListener(_handleFocusChange);
     print(
         'Init: FocusNode created, hasFocus: ${_focusNode.hasFocus}, Items: ${widget.items.length}, Filtered: ${_filteredItems.length}');
+  }
+
+  @override
+  void didUpdateWidget(CustomFieldLanguageDropdown<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Update filtered items when widget items change (pagination)
+    if (oldWidget.items.length != widget.items.length) {
+      _filteredItems = widget.items.whereType<T>().toSet().toList();
+      print('didUpdateWidget: Items updated from ${oldWidget.items.length} to ${widget.items.length}, Filtered: ${_filteredItems.length}');
+    }
   }
 
   @override
@@ -118,7 +132,7 @@ class _CustomFieldLanguageDropdownState<T>
         size.height -
         padding.bottom -
         keyboardHeight;
-    const fixedDropdownHeight = 160.0;
+    const fixedDropdownHeight = 300.0;
 
     bool openAbove = position.dy > screenHeight / 2 ||
         availableSpaceBelow < fixedDropdownHeight;
@@ -160,51 +174,71 @@ class _CustomFieldLanguageDropdownState<T>
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               // Uncomment to enable search inside dropdown
-                              // TextField(
-                              //   controller: _searchController,
-                              //   decoration: InputDecoration(
-                              //     hintText: 'Search...',
-                              //     isDense: true,
-                              //     border: const OutlineInputBorder(),
-                              //     contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                              //   ),
-                              //   onChanged: (query) {
-                              //     if (_debounce?.isActive ?? false) _debounce?.cancel();
-                              //     _debounce = Timer(const Duration(milliseconds: 300), () {
-                              //       setState(() {
-                              //         _filteredItems = widget.items
-                              //             .whereType<T>()
-                              //             .where((item) => _getDisplayText(item).toLowerCase().contains(query.toLowerCase()))
-                              //             .toSet()
-                              //             .toList();
-                              //       });
-                              //     });
-                              //   },
-                              // ),
-                              // const SizedBox(height: 4),
+                              TextField(
+                                controller: _searchController,
+                                decoration: InputDecoration(
+                                  hintText: 'Search...',
+                                  isDense: true,
+                                  border: const OutlineInputBorder(),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                                ),
+                                onChanged: (query) {
+                                  if (_debounce?.isActive ?? false) _debounce?.cancel();
+                                  _debounce = Timer(const Duration(milliseconds: 300), () {
+                                    setState(() {
+                                      _filteredItems = widget.items
+                                          .whereType<T>()
+                                          .where((item) => _getDisplayText(item).toLowerCase().contains(query.toLowerCase()))
+                                          .toSet()
+                                          .toList();
+                                    });
+                                  });
+                                },
+                              ),
+                              const SizedBox(height: 4),
                               Expanded(
                                 child: _filteredItems.isEmpty
                                     ? const Center(child: Text('No items available'))
-                                    : Scrollbar(
-                                        thumbVisibility: true,
-                                  child: ListView.builder(
-                                    padding: EdgeInsets.zero,
-                                    itemCount: _filteredItems.length,
-                                    itemBuilder: (context, index) {
-                                      final item = _filteredItems[index];
-                                      String displayText = _getDisplayText(item);
-                                      return ListTile(
-                                        contentPadding:
-                                        const EdgeInsets.symmetric(horizontal: 8),
-                                        dense: true,
-                                        title: Text(displayText, overflow: TextOverflow.ellipsis),
-                                        onTap: () => _selectItem(item),
-                                        selected: widget.value == item,
-                                        selectedTileColor: Colors.blue.shade50,
-                                      );
-                                    },
-                                  ),
-                                ),
+                                    : widget.scrollController != null
+                                        ? Scrollbar(
+                                            controller: widget.scrollController,
+                                            thumbVisibility: true,
+                                            child: ListView.builder(
+                                              controller: widget.scrollController,
+                                              padding: EdgeInsets.zero,
+                                              itemCount: _filteredItems.length,
+                                              itemBuilder: (context, index) {
+                                                final item = _filteredItems[index];
+                                                String displayText = _getDisplayText(item);
+                                                return ListTile(
+                                                  contentPadding:
+                                                  const EdgeInsets.symmetric(horizontal: 8),
+                                                  dense: true,
+                                                  title: Text(displayText, overflow: TextOverflow.ellipsis),
+                                                  onTap: () => _selectItem(item),
+                                                  selected: widget.value == item,
+                                                  selectedTileColor: Colors.blue.shade50,
+                                                );
+                                              },
+                                            ),
+                                          )
+                                        : ListView.builder(
+                                            padding: EdgeInsets.zero,
+                                            itemCount: _filteredItems.length,
+                                            itemBuilder: (context, index) {
+                                              final item = _filteredItems[index];
+                                              String displayText = _getDisplayText(item);
+                                              return ListTile(
+                                                contentPadding:
+                                                const EdgeInsets.symmetric(horizontal: 8),
+                                                dense: true,
+                                                title: Text(displayText, overflow: TextOverflow.ellipsis),
+                                                onTap: () => _selectItem(item),
+                                                selected: widget.value == item,
+                                                selectedTileColor: Colors.blue.shade50,
+                                              );
+                                            },
+                                          ),
                               ),
                             ],
                           ),

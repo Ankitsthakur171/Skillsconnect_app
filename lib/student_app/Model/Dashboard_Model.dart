@@ -218,10 +218,37 @@ class ApplicationItem {
     String company = json['company'] ?? '';
     String role = json['role'] ?? json['job_title'] ?? '';
     
+    // Extract from activeJob if available (preferred source)
+    final activeJob = json['activeJob'] as Map<String, dynamic>?;
+    
+    // Extract job_id with proper fallback
+    int jobId = 0;
+    if (activeJob != null && activeJob['job_id'] != null) {
+      jobId = int.tryParse(activeJob['job_id'].toString()) ?? 0;
+    } else if (json['job_id'] != null) {
+      jobId = int.tryParse(json['job_id'].toString()) ?? 0;
+    }
+    
+    // Extract job_slug
+    String jobSlug = '';
+    if (activeJob != null && activeJob['job_slug'] != null) {
+      jobSlug = activeJob['job_slug'].toString();
+    } else if (json['job_slug'] != null) {
+      jobSlug = json['job_slug'].toString();
+    }
+    
+    // Extract job_invitation_token - IMPORTANT: Get from activeJob first!
+    String jobInvitationToken = '';
+    if (activeJob != null && activeJob['job_invitation_token'] != null) {
+      jobInvitationToken = activeJob['job_invitation_token'].toString();
+    } else if (json['job_invitation_token'] != null) {
+      jobInvitationToken = json['job_invitation_token'].toString();
+    }
+    
     // If still empty, try to format from job_slug
-    if (role.isEmpty && json['job_slug'] != null) {
+    if (role.isEmpty && jobSlug.isNotEmpty) {
       // Convert slug like "trainee-ai-engineer-205219262" to "Trainee AI Engineer"
-      role = (json['job_slug'] as String)
+      role = jobSlug
           .split('-')
           .where((word) => !word.contains(RegExp(r'^\d+$')))
           .map((word) => word[0].toUpperCase() + word.substring(1))
@@ -233,11 +260,11 @@ class ApplicationItem {
       company: company,
       role: role,
       type: json['type'] ?? 'Job',
-      status: json['status'] ?? '',
+      status: json['status'] ?? (activeJob?['status'] ?? '') as String,
       updated: json['updated'] ?? '',
-      jobId: json['job_id'] ?? 0,
-      jobSlug: json['job_slug'] ?? '',
-      jobInvitationToken: json['job_invitation_token'] ?? '',
+      jobId: jobId,
+      jobSlug: jobSlug,
+      jobInvitationToken: jobInvitationToken,
     );
   }
 }

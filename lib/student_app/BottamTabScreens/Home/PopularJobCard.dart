@@ -161,8 +161,8 @@ class PopularJobCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.right,
                       style: TextStyle(
-                        fontSize: 10.8.sp, // Increased from 9.sp (+20%)
-                        color: Colors.grey[500],
+                        fontSize: 13.sp, // Increased from 9.sp (+20%)
+                        color: Colors.grey[800],
                         fontWeight: FontWeight.w400,
                       ),
                     ),

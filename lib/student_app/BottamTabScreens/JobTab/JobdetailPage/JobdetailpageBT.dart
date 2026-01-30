@@ -495,7 +495,6 @@ class _JobDetailPage2State extends State<JobDetailPage2> {
         print('[DEBUG] _toggleBookmark() session guard logging out in catch, not showing error');
       }
     }
-
     print('[DEBUG] _toggleBookmark() COMPLETED');
   }
 
@@ -651,9 +650,59 @@ class _JobDetailPage2State extends State<JobDetailPage2> {
                   )
                 : error != null
                     ? Center(
-                        child: Text(
-                            error!,
-                            style: const TextStyle(color: Colors.red)))
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 16.w),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.search_off_rounded,
+                                size: 64.sp,
+                                color: Colors.grey[400],
+                              ),
+                              SizedBox(height: 16.h),
+                              Text(
+                                'Job Not Found',
+                                style: TextStyle(
+                                  fontSize: 18.sp,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF003840),
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              SizedBox(height: 8.h),
+                              Text(
+                                'The job you are looking for is no longer available or has been removed.',
+                                style: TextStyle(
+                                  fontSize: 13.sp,
+                                  color: Colors.grey[600],
+                                  height: 1.4,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              // SizedBox(height: 24.h),
+                              // ElevatedButton(
+                              //   onPressed: () => Navigator.pop(context),
+                              //   style: ElevatedButton.styleFrom(
+                              //     backgroundColor: const Color(0xFF0D9488),
+                              //     padding: EdgeInsets.symmetric(
+                              //       horizontal: 32.w,
+                              //       vertical: 12.h,
+                              //     ),
+                              //   ),
+                              //   child: Text(
+                              //     'Go Back',
+                              //     style: TextStyle(
+                              //       color: Colors.white,
+                              //       fontWeight: FontWeight.w600,
+                              //       fontSize: 14.sp,
+                              //     ),
+                              //   ),
+                              // ),
+                            ],
+                          ),
+                        ),
+                      )
                     : SingleChildScrollView(
                         child: Padding(
                           padding: EdgeInsets.symmetric(

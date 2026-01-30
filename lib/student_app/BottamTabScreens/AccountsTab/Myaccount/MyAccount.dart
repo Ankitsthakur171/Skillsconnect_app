@@ -1631,6 +1631,7 @@ class _MyAccountState extends State<MyAccount> {
                               backgroundColor: Colors.white,
                               builder: (_) => LanguageBottomSheet(
                                 initialData: null,
+                                existingLanguages: languageList,
                                 onSave: (LanguagesModel data) {
                                   setState(() {
                                     languageList.add(data);

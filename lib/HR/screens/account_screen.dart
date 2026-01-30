@@ -206,8 +206,6 @@ class _AccountScreenState extends State<HrAccountScreen> {
 
       child: Scaffold(
         appBar: const CustomAppBar(),
-
-        // ------------------ BODY ------------------
         body: SafeArea(
           child: BlocBuilder<AccountBloc, AccountState>(
             builder: (context, state) {
@@ -253,7 +251,6 @@ class _AccountScreenState extends State<HrAccountScreen> {
                             });
                           }
                         });
-
                       }
 
                       return Column(
@@ -311,7 +308,6 @@ class _AccountScreenState extends State<HrAccountScreen> {
                                     ),
                             ),
                           ),
-
                           // Container(
                           //   width: 80,
                           //   height: 80,
@@ -361,7 +357,6 @@ class _AccountScreenState extends State<HrAccountScreen> {
                             ),
                           ),
                           SizedBox(height: 4,),
-
                           Text(
                             displayRole ?? '',
                             style: const TextStyle(
@@ -375,14 +370,12 @@ class _AccountScreenState extends State<HrAccountScreen> {
                   ),
                   // 🔼🔼🔼 Header end
                   const SizedBox(height: 5),
-                  const Divider(color: Color(0x3080AFB4), thickness: 2),
+                  const Divider(color: Color.fromARGB(47, 21, 26, 27), thickness: 2),
                   // const SizedBox(height: 10),
-
                   // Option Tiles
                   Expanded(
                     child: ListView(
                       children: [
-                        // 0 ▸ Edit Profile (pre‑selected)
                         AccountOptionTile(
                           icon: Image.asset(
                             'assets/account.png',
@@ -419,11 +412,8 @@ class _AccountScreenState extends State<HrAccountScreen> {
                                 context.read<ProfileBloc>().add(LoadProfile());
                               }
                             }
-
-
                         ),
 
-                        // 1 ▸ Company Detail
                         AccountOptionTile(
                           icon: Image.asset(
                             'assets/estate.png',
@@ -447,7 +437,6 @@ class _AccountScreenState extends State<HrAccountScreen> {
                           },
                         ),
 
-                        // 2 ▸ Change Password
                         AccountOptionTile(
                           icon: Image.asset(
                             'assets/changepsswd.png',
@@ -484,7 +473,6 @@ class _AccountScreenState extends State<HrAccountScreen> {
                           },
                         ),
 
-                        // 3 ▸ Settings
                         AccountOptionTile(
                           icon: Image.asset(
                             'assets/settings.png',
@@ -493,7 +481,7 @@ class _AccountScreenState extends State<HrAccountScreen> {
                             color: selectedIndex == 3
                                 ? Colors.white
                                 : Colors.black,
-                          ),
+                          ),  
                           title: 'Settings',
                           selected: selectedIndex == 3,
                           onTap: () {
@@ -507,7 +495,6 @@ class _AccountScreenState extends State<HrAccountScreen> {
                           },
                         ),
 
-                        // 3 ▸ Delete account
                         AccountOptionTile(
                           icon: Image.asset(
                             'assets/logout.png',
@@ -540,7 +527,7 @@ class _AccountScreenState extends State<HrAccountScreen> {
                             final res = await HrProfile.deleteAccountStep1();
 
                             if (!mounted) return;
-                            Navigator.pop(context); // close loader
+                            Navigator.pop(context); 
 
                             if (res.ok) {
                               showSuccessSnackBar(context, res.message);
@@ -570,7 +557,6 @@ class _AccountScreenState extends State<HrAccountScreen> {
                           },
                         ),
 
-                        // 4 ▸ Logout
                         AccountOptionTile(
                           icon: Image.asset(
                             'assets/logout.png',

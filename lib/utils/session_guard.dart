@@ -29,10 +29,20 @@ class SessionGuard {
 
   /// Call after you know user is authenticated
   ///
-  static void enable() => _enabled = true;
+  static void enable() {
+    _enabled = true;
+    print('🟢 [SessionGuard.enable()] Guard is NOW ENABLED');
+    print('🟢 [SessionGuard.enable()] Stack trace:');
+    print(StackTrace.current);
+  }
 
   /// Call on logout / app start before auth check
-  static void disable() => _enabled = false;
+  static void disable() {
+    _enabled = false;
+    print('🔴 [SessionGuard.disable()] Guard is NOW DISABLED');
+    print('🔴 [SessionGuard.disable()] Stack trace:');
+    print(StackTrace.current);
+  }
 
   /// Check if logout is currently in progress
   static bool get isLoggingOut {

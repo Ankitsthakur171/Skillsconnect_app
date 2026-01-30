@@ -42,7 +42,6 @@ class DashboardHeaderSection extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Left side: Welcome text
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -62,7 +61,7 @@ class DashboardHeaderSection extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 20.sp,
                   fontWeight: FontWeight.w800,
-                  color: const Color.fromARGB(255, 11, 144, 133),
+                  color: const Color.fromARGB(255, 8, 104, 96),
                   letterSpacing: -0.5,
                 ),
                 maxLines: 2,
@@ -74,7 +73,7 @@ class DashboardHeaderSection extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 12.sp,
                   color: Colors.grey[700],
-                  fontWeight: FontWeight.w400,
+                  fontWeight: FontWeight.w600,
                 ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
@@ -92,7 +91,7 @@ class DashboardHeaderSection extends StatelessWidget {
               'Profile Completion',
               style: TextStyle(
                 fontSize: 12.sp,
-                color: Colors.grey[800],
+                color:  const Color.fromARGB(255, 8, 104, 96),
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0.2,
               ),
@@ -117,7 +116,7 @@ class DashboardHeaderSection extends StatelessWidget {
               '${profile.completion}% complete',
               style: TextStyle(
                 fontSize: 12.sp,
-                color: Colors.grey[800],
+                color:  const Color.fromARGB(255, 8, 104, 96),
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -140,7 +139,7 @@ class DashboardHeaderSection extends StatelessWidget {
         'color': const Color(0xFF0D9488), // Teal
       },
       {
-        'label': 'Interviews This Week',
+        'label': 'Interviews Scheduled',
         'value': stats.interviewsThisWeek,
         'color': const Color(0xFF0D9488), // Teal
       },
@@ -264,18 +263,30 @@ class DashboardHeaderSection extends StatelessWidget {
                     ),
                   ),
                   SizedBox(height: 8.h),
+                  // Role
                   Text(
-                    app.company.isNotEmpty
-                        ? '${app.company} • ${app.role}'
-                        : app.role,
+                    app.role,
                     style: TextStyle(
-                      fontSize: 14.sp,
+                      fontSize: 15.sp,
                       fontWeight: FontWeight.w700,
-                      color: const Color(0xFF003840),
+                      color: const Color.fromARGB(255, 6, 76, 70),
                     ),
-                    maxLines: 2,
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
+                  SizedBox(height: 4.h),
+                  // Company
+                  if (app.company.isNotEmpty)
+                    Text(
+                      app.company,
+                      style: TextStyle(
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey[600],
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   SizedBox(height: 10.h),
                   RichText(
                     text: TextSpan(
@@ -284,7 +295,7 @@ class DashboardHeaderSection extends StatelessWidget {
                           text: 'Status: ',
                           style: TextStyle(
                             fontSize: 13.sp,
-                            color: Colors.grey[600],
+                            color: const Color.fromARGB(255, 0, 0, 0),
                             fontWeight: FontWeight.w400,
                           ),
                         ),
@@ -307,7 +318,7 @@ class DashboardHeaderSection extends StatelessWidget {
                           text: 'Next: ',
                           style: TextStyle(
                             fontSize: 13.sp,
-                            color: Colors.grey[600],
+                            color: const Color.fromARGB(255, 0, 0, 0),
                             fontWeight: FontWeight.w400,
                           ),
                         ),

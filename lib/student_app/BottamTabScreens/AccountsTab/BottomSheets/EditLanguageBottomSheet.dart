@@ -10,11 +10,13 @@ import 'CustomDropDowns/CustomDropDownLanguage.dart';
 class LanguageBottomSheet extends StatefulWidget {
   final LanguagesModel? initialData;
   final Function(LanguagesModel data) onSave;
+  final List<LanguagesModel> existingLanguages;
 
   const LanguageBottomSheet({
     super.key,
     this.initialData,
     required this.onSave,
+    this.existingLanguages = const [],
   });
 
   @override
@@ -25,10 +27,14 @@ class _LanguageBottomSheetState extends State<LanguageBottomSheet>
     with SingleTickerProviderStateMixin {
   bool isLoading = true;
   bool isSaving = false;
+  bool _loadingMore = false;
+  int _currentPage = 1;
+  bool _hasMoreData = true;
 
   List<LanguageMasterModel> masterLanguages = [];
   LanguageMasterModel? selectedLanguage;
   late String selectedProficiency;
+  late ScrollController _languageScrollController;
 
   final List<String> _proficiencyLevels = [
     'Basic',
@@ -89,6 +95,8 @@ class _LanguageBottomSheetState extends State<LanguageBottomSheet>
   @override
   void initState() {
     super.initState();
+    _languageScrollController = ScrollController();
+    _languageScrollController.addListener(_onLanguageScrollListener);
     selectedProficiency =
         widget.initialData?.proficiency ?? _proficiencyLevels[0];
 
@@ -103,21 +111,38 @@ class _LanguageBottomSheetState extends State<LanguageBottomSheet>
     _loadLanguages();
   }
 
+  void _onLanguageScrollListener() {
+    final position = _languageScrollController.position;
+    final maxScrollExtent = position.maxScrollExtent;
+    
+    print('📜 [EditLanguageBottomSheet] Scroll: ${position.pixels.toStringAsFixed(0)}/${maxScrollExtent.toStringAsFixed(0)}');
+    
+    // Load more when scrolled to 90% or reached end
+    if (position.pixels >= maxScrollExtent * 0.9 && !_loadingMore && _hasMoreData) {
+      print('📜 [EditLanguageBottomSheet] Triggering load more at 90% scroll');
+      _loadMoreLanguages();
+    }
+  }
+
   Future<void> _loadLanguages() async {
+    print('📋 [EditLanguageBottomSheet] Loading languages page: $_currentPage');
     try {
-      await LanguageListApi.clearCachedLanguages();
-      final langs = await LanguageListApi.fetchLanguages(page: 1);
+      setState(() => isLoading = true);
+      
+      // Fetch first page from API
+      final languagesFromApi = await LanguageListApi.fetchLanguages(page: _currentPage);
+      print('📋 [EditLanguageBottomSheet] Received ${languagesFromApi.length} languages from API');
 
       if (!mounted) return;
 
-      LanguageMasterModel defaultLang = langs.isNotEmpty
-          ? langs.first
+      LanguageMasterModel defaultLang = languagesFromApi.isNotEmpty
+          ? languagesFromApi.first
           : LanguageMasterModel(languageId: 0, languageName: "No languages");
 
       LanguageMasterModel selectedFromApi;
       if (widget.initialData != null &&
           widget.initialData!.languageName.isNotEmpty) {
-        selectedFromApi = langs.firstWhere(
+        selectedFromApi = languagesFromApi.firstWhere(
           (l) =>
               l.languageName.toLowerCase() ==
               widget.initialData!.languageName.toLowerCase(),
@@ -128,32 +153,70 @@ class _LanguageBottomSheetState extends State<LanguageBottomSheet>
       }
 
       setState(() {
-        masterLanguages = langs.reversed.toList(); // Reverse order to show bottom ones first
+        masterLanguages = languagesFromApi;
+        _hasMoreData = languagesFromApi.length >= 10; // Assume more data if we got 10 items
         selectedLanguage = selectedFromApi;
         isLoading = false;
       });
+      
+      print('📋 [EditLanguageBottomSheet] Total languages loaded: ${masterLanguages.length}, hasMore: $_hasMoreData');
 
       _animationController.forward();
     } catch (e) {
+      print('❌ [EditLanguageBottomSheet] Error loading languages: $e');
       if (!mounted) return;
-      isLoading = false;
+      setState(() => isLoading = false);
       _showSnackBarOnce("Failed to load languages");
+    }
+  }
+
+  Future<void> _loadMoreLanguages() async {
+    if (_loadingMore || !_hasMoreData) {
+      print('📋 [EditLanguageBottomSheet] Skip load more - loading: $_loadingMore, hasMore: $_hasMoreData');
+      return;
+    }
+
+    print('📋 [EditLanguageBottomSheet] Loading more languages...');
+    setState(() {
+      _loadingMore = true;
+      _currentPage++;
+    });
+
+    try {
+      // Fetch next page from API
+      final languagesFromApi = await LanguageListApi.fetchLanguages(page: _currentPage);
+      print('📋 [EditLanguageBottomSheet] Received ${languagesFromApi.length} languages from API for page $_currentPage');
+      
+      if (!mounted) return;
+
+      setState(() {
+        masterLanguages.addAll(languagesFromApi);
+        _hasMoreData = languagesFromApi.length >= 10; // More data available if we got 10 items
+        _loadingMore = false;
+      });
+      
+      print('📋 [EditLanguageBottomSheet] Total languages now: ${masterLanguages.length}, hasMore: $_hasMoreData');
+    } catch (e) {
+      print('❌ [EditLanguageBottomSheet] Error loading more languages: $e');
+      if (!mounted) return;
+      setState(() => _loadingMore = false);
     }
   }
 
   @override
   void dispose() {
     _animationController.dispose();
+    _languageScrollController.removeListener(_onLanguageScrollListener);
+    _languageScrollController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-
     return DraggableScrollableSheet(
-      initialChildSize: 0.4,
+      initialChildSize: 0.7,
       maxChildSize: 0.9,
-      minChildSize: 0.4,
+      minChildSize: 0.7,
       expand: false,
       builder: (context, scrollController) {
         return Container(
@@ -165,7 +228,7 @@ class _LanguageBottomSheetState extends State<LanguageBottomSheet>
             left: 18.1.w,
             right: 18.1.w,
             top: 12.h,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 18.1.h,
+            bottom: 18.1.h,
           ),
           child: FadeTransition(
             opacity: _fadeAnimation,
@@ -179,21 +242,19 @@ class _LanguageBottomSheetState extends State<LanguageBottomSheet>
                         child: ListView(
                           controller: scrollController,
                           physics: const AlwaysScrollableScrollPhysics(),
-                          padding: EdgeInsets.only(
-                            bottom:
-                                MediaQuery.of(context).viewInsets.bottom + 18.h,
-                          ),
                           children: [
                             _buildLabel("Select language", required: true),
                             _buildLanguageDropdown(),
                             SizedBox(height: 16.h),
                             _buildLabel("Select proficiency", required: true),
                             _buildProficiencyDropdown(),
-                            SizedBox(height: 28.h),
-                            _buildSubmitButton(),
                           ],
                         ),
                       ),
+                      SizedBox(height: 16.h),
+                      _buildSubmitButton(),
+                                            SizedBox(height: 16.h),
+
                     ],
                   ),
           ),
@@ -270,6 +331,8 @@ class _LanguageBottomSheetState extends State<LanguageBottomSheet>
         setState(() => selectedLanguage = val);
       },
       hintText: "Select language",
+      scrollController: _languageScrollController,
+      onLoadMore: _loadMoreLanguages,
     );
   }
 
@@ -318,6 +381,16 @@ class _LanguageBottomSheetState extends State<LanguageBottomSheet>
   Future<void> _handleSubmit() async {
     if (selectedLanguage == null || selectedProficiency.isEmpty) {
       _showSnackBarOnce("Please fill all required fields");
+      return;
+    }
+
+    // Check for duplicate language
+    final isDuplicate = widget.existingLanguages.any((lang) =>
+        lang.languageId == selectedLanguage!.languageId &&
+        (widget.initialData == null || lang.id != widget.initialData!.id));
+    
+    if (isDuplicate) {
+      _showSnackBarOnce("This language is already added");
       return;
     }
 
