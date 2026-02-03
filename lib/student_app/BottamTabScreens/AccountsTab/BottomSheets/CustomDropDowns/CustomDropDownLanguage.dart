@@ -34,6 +34,10 @@ class _CustomFieldLanguageDropdownState<T>
   final GlobalKey _key = GlobalKey();
   final FocusNode _focusNode = FocusNode();
   Timer? _debounce;
+  
+  // 🔑 Store the overlay setState to rebuild when items change
+  void Function(void Function())? _overlaySetState;
+  int _lastItemsCount = 0;
 
   @override
   void initState() {
@@ -41,18 +45,37 @@ class _CustomFieldLanguageDropdownState<T>
     _searchController = TextEditingController();
     // remove nulls and duplicate items
     _filteredItems = widget.items.whereType<T>().toSet().toList();
+    _lastItemsCount = widget.items.length;
     _focusNode.addListener(_handleFocusChange);
-    print(
-        'Init: FocusNode created, hasFocus: ${_focusNode.hasFocus}, Items: ${widget.items.length}, Filtered: ${_filteredItems.length}');
+    print('🔥 [CustomDropDownLanguage] ===== INIT STATE =====');
+    print('🔥 [CustomDropDownLanguage] Widget items: ${widget.items.length}');
+    print('🔥 [CustomDropDownLanguage] Filtered items: ${_filteredItems.length}');
+    print('🔥 [CustomDropDownLanguage] FocusNode created, hasFocus: ${_focusNode.hasFocus}');
+    if (widget.scrollController != null) {
+      print('🔥 [CustomDropDownLanguage] Scroll controller attached');
+    }
   }
 
   @override
   void didUpdateWidget(CustomFieldLanguageDropdown<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
     // Update filtered items when widget items change (pagination)
-    if (oldWidget.items.length != widget.items.length) {
+    if (_lastItemsCount != widget.items.length) {
+      print('✏️ [CustomDropDownLanguage] didUpdateWidget: Items ${_lastItemsCount} → ${widget.items.length}');
       _filteredItems = widget.items.whereType<T>().toSet().toList();
-      print('didUpdateWidget: Items updated from ${oldWidget.items.length} to ${widget.items.length}, Filtered: ${_filteredItems.length}');
+      _lastItemsCount = widget.items.length;
+      print('✏️ [CustomDropDownLanguage]   • Filtered items: ${_filteredItems.length}');
+      
+      if (_overlayEntry != null) {
+        print('✏️ [CustomDropDownLanguage]   • Overlay STATUS: OPEN - scheduling rebuild');
+        // Rebuild the overlay after the current frame to avoid setState during build
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted || _overlayEntry == null) return;
+          _overlaySetState?.call(() {});
+        });
+      } else {
+        print('✏️ [CustomDropDownLanguage]   • Overlay STATUS: CLOSED');
+      }
     }
   }
 
@@ -68,13 +91,14 @@ class _CustomFieldLanguageDropdownState<T>
   }
 
   void _handleFocusChange() {
-    print(
-        'Focus Change: hasFocus: ${_focusNode.hasFocus}, Overlay: $_overlayEntry');
+    print('👁️ [CustomDropDownLanguage] Focus changed: hasFocus=${_focusNode.hasFocus}, overlay=${_overlayEntry != null}');
     if (_focusNode.hasFocus &&
         _overlayEntry == null &&
         _filteredItems.isNotEmpty) {
+      print('👁️ [CustomDropDownLanguage] → Opening overlay (focus gained)');
       _toggleDropdown();
     } else if (!_focusNode.hasFocus && _overlayEntry != null) {
+      print('👁️ [CustomDropDownLanguage] → Closing overlay (focus lost)');
       _removeOverlay();
     }
   }
@@ -139,8 +163,9 @@ class _CustomFieldLanguageDropdownState<T>
 
     return OverlayEntry(
       builder: (context) => GestureDetector(
-        behavior: HitTestBehavior.opaque,
+        behavior: HitTestBehavior.translucent,
         onTap: () {
+          print('🔥 [CustomDropDownLanguage] Background tap detected - closing overlay');
           _removeOverlay();
           FocusScope.of(context).unfocus();
         },
@@ -157,6 +182,10 @@ class _CustomFieldLanguageDropdownState<T>
                       0, openAbove ? -(fixedDropdownHeight + 4) : size.height + 4),
                   child: StatefulBuilder(
                     builder: (context, setState) {
+                      // 🔑 Capture the overlay setState so we can call it when items change
+                      _overlaySetState = setState;
+                      print('✏️ [CustomDropDownLanguage] Overlay StatefulBuilder initialized - setState captured');
+                      
                       return Material(
                         elevation: 4,
                         borderRadius: BorderRadius.circular(4),
@@ -210,6 +239,7 @@ class _CustomFieldLanguageDropdownState<T>
                                               itemBuilder: (context, index) {
                                                 final item = _filteredItems[index];
                                                 String displayText = _getDisplayText(item);
+                                                print('🔥 [CustomDropDownLanguage] Rendering item $index: $displayText');
                                                 return ListTile(
                                                   contentPadding:
                                                   const EdgeInsets.symmetric(horizontal: 8),

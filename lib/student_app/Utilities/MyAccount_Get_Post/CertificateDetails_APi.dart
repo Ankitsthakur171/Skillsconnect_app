@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:jwt_decode/jwt_decode.dart';
 import '../../Model/CertificateDetails_Model.dart';
 import '../ApiConstants.dart';
+import '../../../utils/session_guard.dart';
 
 class CertificateApi {
   static Future<List<CertificateModel>> fetchCertificateApi({
@@ -34,6 +35,8 @@ class CertificateApi {
         final List<dynamic> certificates = data['certification'] ?? [];
         return certificates.map((e) => CertificateModel.fromJson(e)).toList();
       } else {
+        // 🔴 Critical: Check for auth errors
+        await SessionGuard.scan(statusCode: response.statusCode, body: await response.stream.bytesToString());
         throw Exception(
             'Failed to load certificate details: ${response.reasonPhrase}');
       }
@@ -89,6 +92,8 @@ class CertificateApi {
       if (response.statusCode == 200) {
         return CertificateModel.fromJson(data['certificate'] ?? data);
       } else {
+        // 🔴 Critical: Check for auth errors
+        await SessionGuard.scan(statusCode: response.statusCode, body: jsonString);
         throw Exception(
             'Failed to save certificate: ${data['msg'] ?? response.reasonPhrase}');
       }
@@ -122,6 +127,8 @@ class CertificateApi {
         print('✅ Certificate $certificationId deleted successfully');
         return true;
       } else {
+        // 🔴 Critical: Check for auth errors
+        await SessionGuard.scan(statusCode: response.statusCode, body: responseBody);
         print(
             '❌ Delete failed [${response.statusCode}] → $responseBody');
         return false;

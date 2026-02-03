@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../ApiConstants.dart';
+import '../../../utils/session_guard.dart';
 
 class ProfilePictureApi {
   /// Upload profile picture to Azure Blob and register with backend
@@ -63,6 +64,7 @@ class ProfilePictureApi {
 
       print('  - SAS Response: ${sasResp.statusCode}');
       if (sasResp.statusCode != 200) {
+        await SessionGuard.scan(statusCode: sasResp.statusCode, body: sasResp.body);
         print('❌ SAS token failed: ${sasResp.statusCode}');
         print('   Response body: ${sasResp.body}');
         return null;
@@ -131,6 +133,7 @@ class ProfilePictureApi {
       print('  - Register response body: ${registerResp.body}');
       
       if (registerResp.statusCode != 200 && registerResp.statusCode != 201) {
+        await SessionGuard.scan(statusCode: registerResp.statusCode, body: registerResp.body);
         print('❌ Registration failed: ${registerResp.statusCode}');
         print('   Response body: ${registerResp.body}');
         return null;

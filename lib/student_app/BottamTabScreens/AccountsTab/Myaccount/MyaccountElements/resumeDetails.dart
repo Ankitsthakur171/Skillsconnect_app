@@ -11,7 +11,8 @@ import 'package:http/http.dart' as http;
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:flutter/services.dart';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 import 'package:skillsconnect/utils/session_guard.dart';
 import '../../../../Model/Resume_fetch_Model.dart';
 import '../../../../Pages/Resume_Viewer.dart';
@@ -31,9 +32,6 @@ class _ResumeSectionState extends State<ResumeSection> {
   String? _error;
   bool _snackBarShown = false;
   String? _studentName;
-
-  static const _downloadsChannel =
-      MethodChannel('com.skillsconnect.student/downloads');
 
   @override
   void initState() {
@@ -316,73 +314,112 @@ class _ResumeSectionState extends State<ResumeSection> {
     } catch (_) {}
   }
 
-  // Future<void> _downloadResume() async {
-  //   final url = _resumeUrl;
-  //   final name = _studentName;
-  //
-  //   if (url == null || name == null) {
-  //     if (!mounted) return;
-  //     ScaffoldMessenger.of(context)
-  //         .showSnackBar(const SnackBar(content: Text("❌ No resume available")));
-  //     return;
-  //   }
-  //
-  //   final filename = "$name-Resume.pdf";
-  //
-  //   try {
-  //     final res = await http.get(Uri.parse(url));
-  //     if (res.statusCode != 200 || res.bodyBytes.isEmpty) {
-  //       if (!mounted) return;
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         SnackBar(content: Text("❌ Download failed (${res.statusCode})")),
-  //       );
-  //       return;
-  //     }
-  //
-  //     final Uint8List bytes = res.bodyBytes;
-  //     String? savedPath;
-  //
-  //     try {
-  //       savedPath = await _downloadsChannel.invokeMethod<String>(
-  //         "saveFileToDownloads",
-  //         {"fileName": filename, "bytes": bytes, "mimeType": "application/pdf"},
-  //       );
-  //     } on PlatformException {
-  //       savedPath = await _downloadsChannel.invokeMethod<String>(
-  //         "legacySaveToDownloads",
-  //         {"fileName": filename, "bytes": bytes, "mimeType": "application/pdf"},
-  //       );
-  //       try {
-  //         await _downloadsChannel.invokeMethod(
-  //           "scanFile",
-  //           {"path": savedPath, "mimeType": "application/pdf"},
-  //         );
-  //       } catch (_) {}
-  //     }
-  //
-  //     if (!mounted) return;
-  //     if (savedPath == null) {
-  //       ScaffoldMessenger.of(context)
-  //           .showSnackBar(const SnackBar(content: Text("❌ Could not save file")));
-  //       return;
-  //     }
-  //
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       SnackBar(content: Text("✅ Saved to Downloads: $savedPath")),
-  //     );
-  //
-  //     Navigator.push(
-  //       context,
-  //       MaterialPageRoute(
-  //         builder: (_) => ResumeViewer(resumeUrl: _resumeUrl!),
-  //       ),
-  //     );
-  //   } catch (e) {
-  //     if (!mounted) return;
-  //     ScaffoldMessenger.of(context)
-  //         .showSnackBar(SnackBar(content: Text("❌ Error: $e")));
-  //   }
-  // }
+  Future<int> _getAndroidVersion() async {
+    final deviceInfo = DeviceInfoPlugin();
+    final androidInfo = await deviceInfo.androidInfo;
+    return androidInfo.version.sdkInt;
+  }
+
+  Future<void> _downloadResume() async {
+    final url = _resumeUrl;
+    final name = _studentName;
+
+    if (url == null || name == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text("❌ No resume available")));
+      return;
+    }
+
+    final base = name.replaceAll(RegExp(r'[^a-zA-Z0-9_\-]'), '_');
+    final filename = '${base}_${DateTime.now().millisecondsSinceEpoch}.pdf';
+
+    try {
+      // Permissions (Android)
+      if (Platform.isAndroid) {
+        final sdk = await _getAndroidVersion();
+        bool granted;
+        if (sdk >= 33) {
+          granted = (await Permission.photos.request()).isGranted;
+        } else {
+          granted = (await Permission.storage.request()).isGranted;
+        }
+        if (!granted) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Please Storage Permission Allow")),
+            );
+          }
+          return;
+        }
+      }
+
+      // Fetch
+      final res = await http.get(Uri.parse(url));
+      if (res.statusCode != 200 || res.bodyBytes.isEmpty) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("❌ Download failed (${res.statusCode})")),
+        );
+        return;
+      }
+
+      if (Platform.isAndroid) {
+        final sdk = await _getAndroidVersion();
+
+        // Android 10+ : SAF dialog
+        if (sdk >= 29) {
+          final tmpDir = await getTemporaryDirectory();
+          final tmpPath = '${tmpDir.path}/$filename';
+          await File(tmpPath).writeAsBytes(res.bodyBytes);
+
+          final savedPath = await FlutterFileDialog.saveFile(
+            params: SaveFileDialogParams(
+              sourceFilePath: tmpPath,
+              fileName: filename,
+              mimeTypesFilter: const ['application/pdf'],
+              localOnly: true,
+            ),
+          );
+
+          if (savedPath == null) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Download cancelled")),
+              );
+            }
+            return;
+          }
+        } else {
+          // Android 9 and below: public Downloads
+          final downloads = Directory('/storage/emulated/0/Download');
+          final out = File('${downloads.path}/$filename');
+          await out.writeAsBytes(res.bodyBytes);
+        }
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Resume downloaded")),
+          );
+        }
+        return;
+      }
+
+      // iOS
+      final docs = await getApplicationDocumentsDirectory();
+      final out = File('${docs.path}/$filename');
+      await out.writeAsBytes(res.bodyBytes);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Resume downloaded")),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("❌ Error: $e")));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -403,13 +440,14 @@ class _ResumeSectionState extends State<ResumeSection> {
                 style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold)),
             SizedBox(
               width: 100.w,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF005E6A),
-                  padding: EdgeInsets.symmetric(horizontal: 12.w),
+              child: TextButton(
+                style: TextButton.styleFrom(
+                  side: BorderSide(color: const Color(0xFF005E6A), width: 1.1.w),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(25.r),
                   ),
+                  padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
                 onPressed: _isLoading
                     ? null
@@ -454,7 +492,11 @@ class _ResumeSectionState extends State<ResumeSection> {
                       },
                 child: Text(
                   _resumeUrl == null ? "Upload" : "Update",
-                  style: TextStyle(color: Colors.white, fontSize: 14.sp),
+                  style: TextStyle(
+                    color: const Color(0xFF005E6A),
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
@@ -485,7 +527,7 @@ class _ResumeSectionState extends State<ResumeSection> {
                   },
                   child: Row(
                     children: [
-                      Icon(Icons.person,
+                      Icon(Icons.picture_as_pdf_outlined,
                           size: 35.w, color: const Color(0xFF005E6A)),
                       SizedBox(width: 8.w),
                       Text(
@@ -496,33 +538,33 @@ class _ResumeSectionState extends State<ResumeSection> {
                     ],
                   ),
                 ),
-                // IconButton(
-                //   icon: const Icon(Icons.download,
-                //       color: Color(0xFF005E6A), size: 28),
-                //   onPressed: () async {
-                //     final confirm = await showDialog<bool>(
-                //       context: context,
-                //       builder: (ctx) => AlertDialog(
-                //         title: const Text("Download Resume"),
-                //         content: const Text(
-                //             "Do you want to download your resume PDF?"),
-                //         actions: [
-                //           TextButton(
-                //             onPressed: () => Navigator.pop(ctx, false),
-                //             child: const Text("No"),
-                //           ),
-                //           TextButton(
-                //             onPressed: () => Navigator.pop(ctx, true),
-                //             child: const Text("Yes"),
-                //           ),
-                //         ],
-                //       ),
-                //     );
-                //     if (confirm == true) {
-                //       await _downloadResume();
-                //     }
-                //   },
-                // ),
+                IconButton(
+                  icon: const Icon(Icons.download,
+                      color: Color(0xFF005E6A), size: 28),
+                  onPressed: () async {
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: const Text("Download Resume"),
+                        content: const Text(
+                            "Do you want to download your resume PDF?"),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, false),
+                            child: const Text("No"),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, true),
+                            child: const Text("Yes"),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (confirm == true) {
+                      await _downloadResume();
+                    }
+                  },
+                ),
               ],
             ),
           )

@@ -56,6 +56,7 @@ class HrProfile {
     if (token == null || token.isEmpty) {
       throw Exception('Token not found');
     }
+    
     final url = Uri.parse("${BASE_URL}profile/submit-hr-profile");
 
     final body = {
@@ -84,7 +85,7 @@ class HrProfile {
     }
   }
 
-  // 🔥 NEW: Fetch My Transactions
+ 
   static Future<List<PaymentTransaction>> fetchTransactions() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('auth_token');

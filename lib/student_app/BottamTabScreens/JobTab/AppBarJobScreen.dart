@@ -209,13 +209,27 @@ class _AppbarjobscreenState extends State<Appbarjobscreen> {
                   child: TextField(
                     controller: _controller,
                     textInputAction: TextInputAction.search,
-                    style: TextStyle(fontSize: 13.sp),
+                    style: TextStyle(fontSize: 13.sp, color: Colors.black87),
                     decoration: InputDecoration(
-                      contentPadding: EdgeInsets.symmetric(vertical: 8.h),
-                      border: InputBorder.none,
+                      contentPadding:
+                          EdgeInsets.symmetric(vertical: 8.h, horizontal: 12.w),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20.r),
+                        borderSide: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20.r),
+                        borderSide: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20.r),
+                        borderSide:
+                            const BorderSide(color: Color(0xFF005E6A)),
+                      ),
                       prefixIcon: Icon(Icons.search, size: 18.sp),
                       hintText: 'Search job title',
-                      hintStyle: TextStyle(fontSize: 13.sp),
+                      hintStyle:
+                          TextStyle(fontSize: 13.sp, color: Colors.grey[600]),
                       suffixIcon: _controller.text.isNotEmpty
                           ? IconButton(
                               icon: const Icon(Icons.close),

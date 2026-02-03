@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../Model/Contack_Us_model.dart';
 import 'ApiConstants.dart';
+import '../../utils/session_guard.dart';
 
 class ContactApi {
   static final String _url = '${ApiConstantsStu.subUrl}contact';
@@ -53,6 +54,8 @@ class ContactApi {
         debugPrint('ContactApi.sendContact - successful: ${contactResponse.message}');
         return contactResponse;
       } else {
+        // 🔴 Critical: Check for auth errors
+        await SessionGuard.scan(statusCode: response.statusCode, body: response.body);
         final msg = 'API error ${response.statusCode}: ${contactResponse.message}';
         debugPrint('ContactApi.sendContact - throwing: $msg');
         throw Exception(msg);

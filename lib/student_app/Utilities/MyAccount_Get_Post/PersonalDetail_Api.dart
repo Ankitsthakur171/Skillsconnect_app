@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../../Model/PersonalDetail_Model.dart';
 import '../ApiConstants.dart';
+import '../../../utils/session_guard.dart';
 
 class PersonalDetailApi {
   static Future<List<PersonalDetailModel>> fetchPersonalDetails({
@@ -19,9 +20,10 @@ class PersonalDetailApi {
       var request = http.Request('GET', url);
       request.headers.addAll(headers);
       http.StreamedResponse response = await request.send();
+      final String responseBody = await response.stream.bytesToString();
+      await SessionGuard.scan(statusCode: response.statusCode, body: responseBody);
       if(response.statusCode == 200){
-        final String jsonString = await response.stream.bytesToString();
-        final Map<String, dynamic> data = jsonDecode(jsonString);
+        final Map<String, dynamic> data = jsonDecode(responseBody);
 
         final List<dynamic> personalDetail = data ['personalDetails'] ?? [] ;
 

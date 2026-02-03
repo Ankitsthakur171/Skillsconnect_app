@@ -36,6 +36,11 @@ class _JoblistfiltersState extends State<Joblistfilters>
   late AnimationController _fadeController;
   late Animation<double> _fadeAnim;
 
+  // Global keys for dropdown management
+  final GlobalKey _jobTypeDropdownKey = GlobalKey();
+  final GlobalKey _courseDropdownKey = GlobalKey();
+  final GlobalKey _locationDropdownKey = GlobalKey();
+
   @override
   void initState() {
     super.initState();
@@ -322,6 +327,13 @@ class _JoblistfiltersState extends State<Joblistfilters>
     return 'All Locations';
   }
 
+  void _closeAllDropdowns() {
+    // Close all dropdowns when opening one
+    (_jobTypeDropdownKey.currentState as dynamic)?.closeDropdown();
+    (_courseDropdownKey.currentState as dynamic)?.closeDropdown();
+    (_locationDropdownKey.currentState as dynamic)?.closeDropdown();
+  }
+
   @override
   Widget build(BuildContext context) {
     return DraggableScrollableSheet(
@@ -455,7 +467,9 @@ class _JoblistfiltersState extends State<Joblistfilters>
                                     "JobListFilters → Selected jobType: $selectedJobTypeName ($selectedJobTypeId)");
                               }
                             },
+                            key: _jobTypeDropdownKey,
                             label: 'Select Job Type',
+                            onBeforeOpen: _closeAllDropdowns,
                           ),
                           const SizedBox(height: 20),
                           _label("Course"),
@@ -486,8 +500,10 @@ class _JoblistfiltersState extends State<Joblistfilters>
                                 });
                               }
                             },
+                            key: _courseDropdownKey,
                             label: "Select Course",
                             forceOpenUpward: true,
+                            onBeforeOpen: _closeAllDropdowns,
                           ),
                           const SizedBox(height: 20),
                           _label("Location"),
@@ -541,8 +557,10 @@ class _JoblistfiltersState extends State<Joblistfilters>
                               print(
                                   "JobListFilters → Selected location: $selectedLocationName (raw id: ${found['id']}, resolvedId: $resolvedId)");
                             },
+                            key: _locationDropdownKey,
                             label: "Select Location",
                             forceOpenUpward: true,
+                            onBeforeOpen: _closeAllDropdowns,
                           ),
                           const SizedBox(height: 50),
                           Center(

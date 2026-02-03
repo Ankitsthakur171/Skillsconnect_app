@@ -6,6 +6,7 @@ class CustomFieldCertificateDropdown extends StatefulWidget {
   final String value;
   final ValueChanged<String?> onChanged;
   final String label;
+  final VoidCallback? onBeforeOpen;
 
   const CustomFieldCertificateDropdown(
       this.items,
@@ -13,6 +14,7 @@ class CustomFieldCertificateDropdown extends StatefulWidget {
       this.onChanged, {
         super.key,
         this.label = 'Select an option',
+        this.onBeforeOpen,
       });
 
   @override
@@ -34,7 +36,6 @@ class _CustomFieldCertificateDropdownState extends State<CustomFieldCertificateD
     _searchController = TextEditingController();
     _filteredItems = widget.items.toSet().toList();
     _focusNode.addListener(_handleFocusChange);
-    print('Init: FocusNode created, hasFocus: ${_focusNode.hasFocus}');
   }
 
   @override
@@ -44,40 +45,40 @@ class _CustomFieldCertificateDropdownState extends State<CustomFieldCertificateD
     _focusNode.dispose();
     _searchController.dispose();
     _removeOverlay();
-    print('Dispose: Cleaning up');
     super.dispose();
   }
 
   void _handleFocusChange() {
-    print('Focus Change: hasFocus: ${_focusNode.hasFocus}, Overlay: $_overlayEntry');
-    if (_focusNode.hasFocus && _overlayEntry == null) {
-      _toggleDropdown();
-    } else if (!_focusNode.hasFocus && _overlayEntry != null) {
-      _removeOverlay();
-    }
+    // DON'T auto-close on focus loss - let the parent _closeAllDropdowns() handle it
+    // This prevents race conditions when switching between dropdowns
   }
 
   void _toggleDropdown() {
     if (_overlayEntry == null) {
+      widget.onBeforeOpen?.call();
+      
       _filteredItems = widget.items.toSet().toList();
       _searchController.clear();
+      
       _overlayEntry = _createOverlayEntry();
+      
       Overlay.of(context).insert(_overlayEntry!);
+      
       _focusNode.requestFocus();
-      print('ToggleDropdown: Overlay created, Focus requested: ${_focusNode.hasFocus}');
+    } else {
+      _removeOverlay();
     }
   }
 
   void _removeOverlay() {
     _overlayEntry?.remove();
     _overlayEntry = null;
-    print('RemoveOverlay: Overlay removed');
+    _focusNode.unfocus();
   }
 
   void _selectItem(String item) {
     widget.onChanged(item);
     _removeOverlay();
-    print('SelectItem: Selected $item, Focus: ${_focusNode.hasFocus}');
   }
 
   OverlayEntry _createOverlayEntry() {
@@ -94,10 +95,9 @@ class _CustomFieldCertificateDropdownState extends State<CustomFieldCertificateD
     const fixedDropdownHeight = 200.0;
 
     bool openAbove = position.dy > screenHeight / 2 || availableSpaceBelow < fixedDropdownHeight;
-
     return OverlayEntry(
       builder: (context) => GestureDetector(
-        behavior: HitTestBehavior.opaque,
+        behavior: HitTestBehavior.translucent,
         onTap: () {
           _removeOverlay();
           FocusScope.of(context).unfocus();
@@ -188,13 +188,21 @@ class _CustomFieldCertificateDropdownState extends State<CustomFieldCertificateD
     );
   }
 
+  void closeDropdown() {
+    if (_overlayEntry != null) {
+      _removeOverlay();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return CompositedTransformTarget(
       link: _layerLink,
       child: GestureDetector(
         key: _key,
-        onTap: _toggleDropdown,
+        onTap: () {
+          _toggleDropdown();
+        },
         child: InputDecorator(
           decoration: InputDecoration(
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),

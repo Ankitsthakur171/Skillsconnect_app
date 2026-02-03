@@ -95,6 +95,8 @@ class SessionGuard {
 
   static Future<void> _forceLogoutWithMessage(String message) async {
     print('🚪 [_forceLogoutWithMessage] START - message: $message');
+    print('🚪 [_forceLogoutWithMessage] _navKey=${_navKey}');
+    print('🚪 [_forceLogoutWithMessage] _navKey.currentContext=${_navKey?.currentContext}');
 
     if (_loggingOut) {
       print('🚪 [_forceLogoutWithMessage] already logging out, returning');

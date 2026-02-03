@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../../Model/Skiils_Model.dart';
 import '../ApiConstants.dart';
+import '../../../utils/session_guard.dart';
 
 class SkillsApi {
   static Future<List<SkillsModel>> fetchSkills({
@@ -42,6 +43,7 @@ class SkillsApi {
       );
 
       final responseBody = await response.stream.bytesToString();
+      await SessionGuard.scan(statusCode: response.statusCode, body: responseBody);
       print('🔍 [SkillsApi.fetchSkills] body=$responseBody');
 
       if (response.statusCode == 200) {

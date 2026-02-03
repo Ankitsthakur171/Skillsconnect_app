@@ -43,6 +43,11 @@ class _EditCertificateBottomSheetState extends State<EditCertificateBottomSheet>
   final GlobalKey _issueDateKey = GlobalKey();
   final GlobalKey _expiryDateKey = GlobalKey();
 
+  final GlobalKey _issueMonthDropdownKey = GlobalKey();
+  final GlobalKey _issueYearDropdownKey = GlobalKey();
+  final GlobalKey _expiryMonthDropdownKey = GlobalKey();
+  final GlobalKey _expiryYearDropdownKey = GlobalKey();
+
   ScrollController? _sheetScrollController;
 
 
@@ -120,20 +125,25 @@ class _EditCertificateBottomSheetState extends State<EditCertificateBottomSheet>
         TextEditingController(text: data?.description ?? '');
 
     _certificateNameFocus = FocusNode()
-      ..addListener(() =>
-          _onFieldFocus(_certificateNameFocus, _certificateNameKey));
+      ..addListener(() {
+        _onFieldFocus(_certificateNameFocus, _certificateNameKey);
+      });
     _issuedOrgFocus = FocusNode()
-      ..addListener(() =>
-          _onFieldFocus(_issuedOrgFocus, _issuedOrgKey));
+      ..addListener(() {
+        _onFieldFocus(_issuedOrgFocus, _issuedOrgKey);
+      });
     _credIdFocus = FocusNode()
-      ..addListener(() =>
-          _onFieldFocus(_credIdFocus, _credIdKey));
+      ..addListener(() {
+        _onFieldFocus(_credIdFocus, _credIdKey);
+      });
     _urlFocus = FocusNode()
-      ..addListener(() =>
-          _onFieldFocus(_urlFocus, _urlKey));
+      ..addListener(() {
+        _onFieldFocus(_urlFocus, _urlKey);
+      });
     _descriptionFocus = FocusNode()
-      ..addListener(() =>
-          _onFieldFocus(_descriptionFocus, _descriptionKey));
+      ..addListener(() {
+        _onFieldFocus(_descriptionFocus, _descriptionKey);
+      });
 
     if (data != null) {
       final issueParts = data.issueDate.split('-');
@@ -159,8 +169,11 @@ class _EditCertificateBottomSheetState extends State<EditCertificateBottomSheet>
   }
 
   void _onFieldFocus(FocusNode node, GlobalKey key) {
-    if (!node.hasFocus) return;
-    _scrollIntoView(key);
+    // DON'T close dropdowns here - GestureDetector.onTap already handled it
+    // Just handle scrolling when focus is acquired
+    if (node.hasFocus) {
+      _scrollIntoView(key);
+    }
   }
 
   void _scrollIntoView(GlobalKey targetKey) {
@@ -176,6 +189,13 @@ class _EditCertificateBottomSheetState extends State<EditCertificateBottomSheet>
         alignment: 0.12,
       );
     });
+  }
+
+  void _closeAllDropdowns() {
+    (_issueMonthDropdownKey.currentState as dynamic)?.closeDropdown();
+    (_issueYearDropdownKey.currentState as dynamic)?.closeDropdown();
+    (_expiryMonthDropdownKey.currentState as dynamic)?.closeDropdown();
+    (_expiryYearDropdownKey.currentState as dynamic)?.closeDropdown();
   }
 
   @override
@@ -224,13 +244,10 @@ class _EditCertificateBottomSheetState extends State<EditCertificateBottomSheet>
 
       if (mounted) {
         setState(() => isSaving = false);
-        print(
-            '✅ [EditCertificateBottomSheet] Certificate saved: ${certificate.certificateName}');
         _showSnackBarOnce(context, 'Certificate saved successfully',
             backgroundColor: Colors.green);
       }
     } catch (e, st) {
-      print('🚨 [EditCertificateBottomSheet] Exception while saving: $e\n$st');
       if (mounted) {
         setState(() => isSaving = false);
         _showSnackBarOnce(context, 'Failed to save certificate: $e',
@@ -249,11 +266,9 @@ class _EditCertificateBottomSheetState extends State<EditCertificateBottomSheet>
       minChildSize: 0.8,
       builder: (context, scrollController) {
         _sheetScrollController = scrollController;
-        return GestureDetector(
-          onTap: () => FocusScope.of(context).unfocus(),
-          child: FadeTransition(
-            opacity: _fadeAnimation,
-            child: Container(
+        return FadeTransition(
+          opacity: _fadeAnimation,
+          child: Container(
               padding: EdgeInsets.only(
                 left: 14.4.w,
                 right: 14.4.w,
@@ -283,8 +298,6 @@ class _EditCertificateBottomSheetState extends State<EditCertificateBottomSheet>
                         IconButton(
                           icon: Icon(Icons.close, size: 17.7.w),
                           onPressed: () {
-                            print(
-                                '🔍 [EditCertificateBottomSheet] Closing bottom sheet');
                             Navigator.of(context).pop();
                           },
                         ),
@@ -336,23 +349,21 @@ class _EditCertificateBottomSheetState extends State<EditCertificateBottomSheet>
                           _buildLabel('Issued Date'),
                           _buildDateRow(_issueMonth, _issueYear, _issueDateKey, (m) {
                             setState(() => _issueMonth = m);
-                            print(
-                                '🔍 [EditCertificateBottomSheet] Issue month changed to: $m');
                           }, (y) {
                             setState(() => _issueYear = y);
-                            print(
-                                '🔍 [EditCertificateBottomSheet] Issue year changed to: $y');
-                          }),
+                          },
+                            monthDropdownKey: _issueMonthDropdownKey,
+                            yearDropdownKey: _issueYearDropdownKey,
+                          ),
                           _buildLabel('Expiry Date'),
                           _buildDateRow(_expiryMonth, _expiryYear, _expiryDateKey, (m) {
                             setState(() => _expiryMonth = m);
-                            print(
-                                '🔍 [EditCertificateBottomSheet] Expiry month changed to: $m');
                           }, (y) {
                             setState(() => _expiryYear = y);
-                            print(
-                                '🔍 [EditCertificateBottomSheet] Expiry year changed to: $y');
-                          }),
+                          },
+                            monthDropdownKey: _expiryMonthDropdownKey,
+                            yearDropdownKey: _expiryYearDropdownKey,
+                          ),
                           SizedBox(height: 27.1.h),
                           ElevatedButton(
                             onPressed: isSaving ? null : _handleSave,
@@ -385,7 +396,6 @@ class _EditCertificateBottomSheetState extends State<EditCertificateBottomSheet>
                 ),
               ),
             ),
-          ),
         );
       },
     );
@@ -404,73 +414,77 @@ class _EditCertificateBottomSheetState extends State<EditCertificateBottomSheet>
       {String hintText = '', bool required = true, FocusNode? focusNode, Key? fieldKey}) {
     return Padding(
       padding: EdgeInsets.only(bottom: 10.8.h),
-      child: TextFormField(
-        key: fieldKey,
-        controller: controller,
-        focusNode: focusNode,
-        decoration: InputDecoration(
-          hintText: hintText,
-          hintStyle: TextStyle(fontSize: 12.4.sp),
-          border:
-              OutlineInputBorder(borderRadius: BorderRadius.circular(10.8.r)),
-          contentPadding:
-              EdgeInsets.symmetric(horizontal: 10.8.w, vertical: 7.2.h),
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () {
+          _closeAllDropdowns();
+          focusNode?.requestFocus();
+        },
+        child: TextFormField(
+          key: fieldKey,
+          controller: controller,
+          focusNode: focusNode,
+          decoration: InputDecoration(
+            hintText: hintText,
+            hintStyle: TextStyle(fontSize: 12.4.sp),
+            border:
+                OutlineInputBorder(borderRadius: BorderRadius.circular(10.8.r)),
+            contentPadding:
+                EdgeInsets.symmetric(horizontal: 10.8.w, vertical: 7.2.h),
+          ),
+          style: TextStyle(fontSize: 12.4.sp),
+          validator: (value) =>
+              (required && (value == null || value.trim().isEmpty))
+                  ? 'Required'
+                  : null,
         ),
-        style: TextStyle(fontSize: 12.4.sp),
-        validator: (value) =>
-            (required && (value == null || value.trim().isEmpty))
-                ? 'Required'
-                : null,
       ),
     );
   }
 
     Widget _buildDateRow(String month, String year, GlobalKey rowKey,
-      Function(String) onMonthChanged, Function(String) onYearChanged) {
+      Function(String) onMonthChanged, Function(String) onYearChanged,
+      {required GlobalKey monthDropdownKey, required GlobalKey yearDropdownKey}) {
     return Padding(
       padding: EdgeInsets.only(bottom: 10.8.h),
       child: Row(
         key: rowKey,
         children: [
           Expanded(
-            child: GestureDetector(
-              behavior: HitTestBehavior.translucent,
-              onTapDown: (_) => _scrollIntoView(rowKey),
-              child: CustomFieldCertificateDropdown(
-                const [
-                  'Jan',
-                  'Feb',
-                  'Mar',
-                  'Apr',
-                  'May',
-                  'Jun',
-                  'Jul',
-                  'Aug',
-                  'Sep',
-                  'Oct',
-                  'Nov',
-                  'Dec'
-                ],
-                month,
-                (val) => onMonthChanged(val ?? 'Jan'),
-                label: 'Month',
-              ),
+            child: CustomFieldCertificateDropdown(
+              const [
+                'Jan',
+                'Feb',
+                'Mar',
+                'Apr',
+                'May',
+                'Jun',
+                'Jul',
+                'Aug',
+                'Sep',
+                'Oct',
+                'Nov',
+                'Dec'
+              ],
+              month,
+              (val) => onMonthChanged(val ?? 'Jan'),
+              label: 'Month',
+              onBeforeOpen: _closeAllDropdowns,
+              key: monthDropdownKey,
             ),
           ),
           SizedBox(width: 10.8.w),
           Expanded(
-            child: GestureDetector(
-              behavior: HitTestBehavior.translucent,
-              onTapDown: (_) => _scrollIntoView(rowKey),
-              child: CustomFieldCertificateDropdown(
-                _yearItems()
-                    .map((item) => item.value!)
-                    .whereType<String>()
-                    .toList(),
-                year,
-                (val) => onYearChanged(val ?? '2025'),
-                label: 'Year',
-              ),
+            child: CustomFieldCertificateDropdown(
+              _yearItems()
+                  .map((item) => item.value!)
+                  .whereType<String>()
+                  .toList(),
+              year,
+              (val) => onYearChanged(val ?? '2025'),
+              label: 'Year',
+              onBeforeOpen: _closeAllDropdowns,
+              key: yearDropdownKey,
             ),
           ),
         ],

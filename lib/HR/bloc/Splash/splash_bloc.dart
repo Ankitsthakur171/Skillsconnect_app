@@ -72,6 +72,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../TPO/Model/tpo_home_job_model.dart';
 import '../../../utils/company_info_manager.dart';
+import '../../../utils/session_guard.dart';
 import '../../../utils/tpo_info_manager.dart';
 import '../Login/login_bloc.dart';
 import 'splash_event.dart';
@@ -164,15 +165,21 @@ class SplashBloc extends Bloc<SplashEvent, SplashState> {
         await UserInfoManager().loadUserDataOnce(getUserData);
         final userId = prefs.getString('user_id') ?? '';
         if (userId.isNotEmpty) CallIncomingWatcher.start(userId);
+        print('🎯 [SplashBloc] TPO authenticated - enabling SessionGuard');
+        SessionGuard.enable();
         emit(AuthenticatedTPO());
       } else if (userType == 4) { // Student
         final userId = prefs.getString('user_id') ?? '';
         if (userId.isNotEmpty) CallIncomingWatcher.start(userId);
+        print('🎯 [SplashBloc] Student authenticated - enabling SessionGuard');
+        SessionGuard.enable();
         emit(AuthenticatedStudent());
       } else if (userType == 7) { // HR
         await CompanyInfoManager().load();
         final userId = prefs.getString('user_id') ?? '';
         if (userId.isNotEmpty) CallIncomingWatcher.start(userId);
+        print('🎯 [SplashBloc] HR authenticated - enabling SessionGuard');
+        SessionGuard.enable();
         emit(AuthenticatedJob());
       } else {
         emit(Unauthenticated());

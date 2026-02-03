@@ -162,7 +162,10 @@ class OtpLoginBloc extends Bloc<OtpLoginEvent, OtpLoginState> {
           emit(state.copyWith(isLoading: false, errorMessage: _cleanMsg(msg)));
         }
       } catch (e) {
-        emit(state.copyWith(isLoading: false, errorMessage: 'Network error: $e'));
+        emit(state.copyWith(
+          isLoading: false,
+          errorMessage: _sanitizeErrorMessage(e),
+        ));
       }
     });
 
@@ -184,6 +187,42 @@ class OtpLoginBloc extends Bloc<OtpLoginEvent, OtpLoginState> {
   }
 
   String _cleanMsg(String raw) => raw.split('<').first.trim();
+
+  /// Convert technical errors to user-friendly messages
+  String _sanitizeErrorMessage(dynamic error) {
+    final errorStr = error.toString().toLowerCase();
+
+    // Firebase Messaging errors
+    if (errorStr.contains('firebase_messaging')) {
+      if (errorStr.contains('service_not_available')) {
+        return 'Connection error. Please check your internet and try again.';
+      }
+      return 'Service temporarily unavailable. Please try again in a moment.';
+    }
+
+    // Network/IO errors
+    if (errorStr.contains('socket') || errorStr.contains('ioexception')) {
+      return 'Network error. Please check your internet connection and try again.';
+    }
+
+    // Timeout errors
+    if (errorStr.contains('timeout') || errorStr.contains('deadline')) {
+      return 'Request timed out. Please check your connection and try again.';
+    }
+
+    // Connection refused
+    if (errorStr.contains('connection refused') || errorStr.contains('econnrefused')) {
+      return 'Unable to connect to server. Please try again later.';
+    }
+
+    // SSL/Certificate errors
+    if (errorStr.contains('ssl') || errorStr.contains('certificate')) {
+      return 'Secure connection failed. Please check your internet and try again.';
+    }
+
+    // Generic fallback
+    return 'Something went wrong. Please try again.';
+  }
 
   Future<void> _handleLoginSuccess(Map data, BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
@@ -397,7 +436,10 @@ class OtpLoginBloc extends Bloc<OtpLoginEvent, OtpLoginState> {
         emit(state.copyWith(isLoading: false, errorMessage: _cleanMsg((body['message'] ?? body['msg'] ?? 'Failed to send OTP').toString())));
       }
     } catch (e) {
-      emit(state.copyWith(isLoading: false, errorMessage: 'Network error: $e'));
+      emit(state.copyWith(
+        isLoading: false,
+        errorMessage: _sanitizeErrorMessage(e),
+      ));
     }
   }
 

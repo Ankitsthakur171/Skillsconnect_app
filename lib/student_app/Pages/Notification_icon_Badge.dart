@@ -17,7 +17,8 @@ class NotificationBell extends StatefulWidget {
 
 class _NotificationBellState extends State<NotificationBell> {
   Timer? _pollTimer;
-  int _lastUnreadCount = 0; // Track last unread count to avoid unnecessary rebuilds
+  int _lastUnreadCount = 0;
+  DateTime? _lastPolledAt;
 
   bool _isUnread(AppNotification n) {
     final v = (n.readStatus).toString().trim().toLowerCase();
@@ -31,16 +32,20 @@ class _NotificationBellState extends State<NotificationBell> {
     if (!bloc.state.isLoading && bloc.state.notifications.isEmpty) {
       print('🔔 [NotificationBell] initState() -> triggering initial LoadNotifications');
       bloc.add(LoadNotifications());
+      _lastUnreadCount = 0;
     } else {
-      // Set initial unread count
       _lastUnreadCount = bloc.state.notifications.where(_isUnread).length;
     }
 
-    // Lightweight polling to reflect new notifications without navigation.
-    // Only reloads if there's a potential new notification
+    // Poll only every 30 seconds but only if there's a potential change
     _pollTimer = Timer.periodic(const Duration(seconds: 30), (_) {
-      print('🔔 [NotificationBell] Polling for new notifications...');
-      context.read<NotificationBloc>().add(LoadNotifications());
+      final now = DateTime.now();
+      // Only poll if it's been at least 30 seconds since last poll
+      if (_lastPolledAt == null || now.difference(_lastPolledAt!).inSeconds >= 30) {
+        _lastPolledAt = now;
+        print('🔔 [NotificationBell] Polling for new notifications...');
+        context.read<NotificationBloc>().add(LoadNotifications());
+      }
     });
   }
 
@@ -54,19 +59,22 @@ class _NotificationBellState extends State<NotificationBell> {
   Widget build(BuildContext context) {
     return BlocBuilder<NotificationBloc, NotificationState>(
       buildWhen: (previous, current) {
-        // Only rebuild if unread count has changed from the last known count
+        // Only rebuild if the unread count actually changed
+        final prevUnreadCount = previous.notifications.where(_isUnread).length;
         final currUnreadCount = current.notifications.where(_isUnread).length;
         
-        if (_lastUnreadCount != currUnreadCount) {
-          print('🔔 [NotificationBell] Unread count changed: $_lastUnreadCount → $currUnreadCount');
-          return true;
+        final shouldRebuild = prevUnreadCount != currUnreadCount;
+        
+        if (shouldRebuild) {
+          print('🔔 [NotificationBell] Unread count changed: $prevUnreadCount → $currUnreadCount (REBUILDING)');
+        } else {
+          print('🔔 [NotificationBell] Unread count unchanged: $currUnreadCount (SKIPPING REBUILD)');
         }
         
-        return false;
+        return shouldRebuild;
       },
       builder: (context, state) {
         final unreadCount = state.notifications.where(_isUnread).length;
-        _lastUnreadCount = unreadCount;
         
         return Stack(
           clipBehavior: Clip.none,
@@ -79,9 +87,8 @@ class _NotificationBellState extends State<NotificationBell> {
                 );
                 if (!mounted) return;
 
-                // If the page returned a fresh count, keep it in sync; otherwise refresh.
+                // Refresh after returning from notifications page
                 if (result != null) {
-                  // Push updated count into BLoC by reloading.
                   context.read<NotificationBloc>().add(LoadNotifications());
                 }
               },

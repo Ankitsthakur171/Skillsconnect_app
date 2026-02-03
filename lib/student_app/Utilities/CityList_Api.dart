@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:math';
 
 import 'ApiConstants.dart';
+import '../../utils/session_guard.dart';
 
 class CityListApi {
   static Future<List<String>> fetchCities({
@@ -79,6 +80,8 @@ class CityListApi {
           await Future.delayed(delay);
           continue;
         } else {
+          // 🔴 Critical: Check for auth errors
+          await SessionGuard.scan(statusCode: response.statusCode, body: resBody);
           print("❌ API failed for city '$cityName' with state ID '$stateId': ${response.statusCode} - ${response.reasonPhrase}");
           print("Response body: $resBody");
           return allCities;

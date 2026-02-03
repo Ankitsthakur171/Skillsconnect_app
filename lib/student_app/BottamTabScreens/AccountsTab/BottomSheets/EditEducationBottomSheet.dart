@@ -38,6 +38,20 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
     with SingleTickerProviderStateMixin {
 
   ScrollController? _sheetScrollController;
+  // Dropdown state management
+  String? _activeDropdownId;
+
+  // Global keys for dropdown management
+  final GlobalKey _degreeDropdownKey = GlobalKey();
+  final GlobalKey _boardDropdownKey = GlobalKey();
+  final GlobalKey _mediumDropdownKey = GlobalKey();
+  final GlobalKey _yearDropdownKey = GlobalKey();
+  final GlobalKey _monthDropdownKey = GlobalKey();
+  final GlobalKey _collegeDropdownKey = GlobalKey();
+  final GlobalKey _courseDropdownKey = GlobalKey();
+  final GlobalKey _specializationDropdownKey = GlobalKey();
+  final GlobalKey _courseTypeDropdownKey = GlobalKey();
+  final GlobalKey _gradingSystemDropdownKey = GlobalKey();
 
   late TextEditingController _marksController;
   late TextEditingController _boardNameController;
@@ -232,8 +246,24 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
 
   void _handleMarksFocusChange() {
     if (_marksFocusNode.hasFocus) {
+      _closeAllDropdowns();
       _scrollIntoView(_marksFieldKey);
     }
+  }
+
+  // Close all open dropdowns when switching between them
+  void _closeAllDropdowns() {
+    _activeDropdownId = null;
+    (_degreeDropdownKey.currentState as dynamic)?.closeDropdown();
+    (_boardDropdownKey.currentState as dynamic)?.closeDropdown();
+    (_mediumDropdownKey.currentState as dynamic)?.closeDropdown();
+    (_yearDropdownKey.currentState as dynamic)?.closeDropdown();
+    (_monthDropdownKey.currentState as dynamic)?.closeDropdown();
+    (_collegeDropdownKey.currentState as dynamic)?.closeDropdown();
+    (_courseDropdownKey.currentState as dynamic)?.closeDropdown();
+    (_specializationDropdownKey.currentState as dynamic)?.closeDropdown();
+    (_courseTypeDropdownKey.currentState as dynamic)?.closeDropdown();
+    (_gradingSystemDropdownKey.currentState as dynamic)?.closeDropdown();
   }
 
   void _scrollIntoView(GlobalKey targetKey) {
@@ -570,15 +600,16 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
           );
           selectedSpecializationId = match.isNotEmpty ? match['id'] : null;
         }
-        if (selectedSpecializationId == null) {
-          selectedSpecializationId = specializationItems.isNotEmpty
-              ? specializationItems[0]['id']
-              : null;
-          if (specializationList.isNotEmpty && specializationName.isEmpty) {
-            specializationName =
-                specializationList.isNotEmpty ? specializationList[0] : '';
-          }
-        }
+        // Auto-selection commented out - let user choose specialization manually
+        // if (selectedSpecializationId == null) {
+        //   selectedSpecializationId = specializationItems.isNotEmpty
+        //       ? specializationItems[0]['id']
+        //       : null;
+        //   if (specializationList.isNotEmpty && specializationName.isEmpty) {
+        //     specializationName =
+        //         specializationList.isNotEmpty ? specializationList[0] : '';
+        //   }
+        // }
         if (specializationList.isEmpty) {
           specializationList = ['No Specializations Available'];
           specializationName = '';
@@ -992,7 +1023,11 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
       builder: (context, scrollController) {
         _sheetScrollController = scrollController;
         return GestureDetector(
-          onTap: () => FocusScope.of(context).unfocus(),
+          behavior: HitTestBehavior.opaque,
+          onTap: () {
+            FocusScope.of(context).unfocus();
+            _closeAllDropdowns();
+          },
           child: FadeTransition(
             opacity: _fadeAnimation,
             child: Container(
@@ -1042,10 +1077,12 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
                             children: [
                               _buildLabel('Degree Type'),
                               SearchableDropdownField(
+                                key: _degreeDropdownKey,
                                 value: degreeName,
                                 items: degreeList.isNotEmpty
                                     ? degreeList
                                     : ['No Degrees Available'],
+                                onBeforeOpen: _closeAllDropdowns,
                                 onChanged: (val) async {
                                   setState(() {
                                     degreeName = val ?? '';
@@ -1069,11 +1106,13 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
                                 _loadingBoards
                                     ? _buildShimmerBoard()
                                     : SearchableDropdownField(
+                                        key: _boardDropdownKey,
                                         value: selectedBoard ??
                                             (boardList.isNotEmpty
                                                 ? boardList[0]
                                                 : null),
                                         items: boardList,
+                                        onBeforeOpen: _closeAllDropdowns,
                                         onChanged: (val) {
                                           setState(() {
                                             selectedBoard = val;
@@ -1090,11 +1129,13 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
                                 _loadingMediums
                                     ? _buildShimmerMedium()
                                     : SearchableDropdownField(
+                                        key: _mediumDropdownKey,
                                         value: selectedMedium ??
                                             (mediumList.isNotEmpty
                                                 ? mediumList[0]
                                                 : null),
                                         items: mediumList,
+                                        onBeforeOpen: _closeAllDropdowns,
                                         onChanged: (val) {
                                           setState(() {
                                             selectedMedium = val;
@@ -1111,6 +1152,7 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
                                     keyboardType: TextInputType.number),
                                 _buildLabel('Year of passing'),
                                 SearchableDropdownField(
+                                  key: _yearDropdownKey,
                                   value: passingYear,
                                   items: const [
                                     '2019',
@@ -1125,12 +1167,16 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
                                     '2028',
                                     '2029'
                                   ],
-                                  onChanged: (val) => setState(
-                                      () => passingYear = val ?? passingYear),
+                                  onBeforeOpen: _closeAllDropdowns,
+                                  onChanged: (val) {
+                                    setState(
+                                        () => passingYear = val ?? passingYear);
+                                  },
                                 ),
                               ] else ...[
                                 _buildLabel('College'),
                                 AsyncSearchableDropdownField(
+                                  key: _collegeDropdownKey,
                                   value: selectedCollegeId != null
                                       ? {
                                           'id': selectedCollegeId!,
@@ -1140,6 +1186,7 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
                                   fetcher: ({int page = 1, String? query}) =>
                                       ApiService.fetchCollegeList(
                                           page: page, query: query),
+                                  onBeforeOpen: _closeAllDropdowns,
                                   onChanged: (item) {
                                     setState(() {
                                       if (item != null) {
@@ -1155,8 +1202,7 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
                                 ),
                                 _buildLabel('Course'),
                                 AsyncSearchableDropdownField(
-                                  key: ValueKey(
-                                      'courses_for_degree_${degreeId ?? 'none'}'),
+                                  key: _courseDropdownKey,
                                   value: selectedCourseId != null
                                       ? {
                                           'id': selectedCourseId!,
@@ -1180,14 +1226,21 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
                                       connectSid: connectSid,
                                     );
                                   },
+                                  onBeforeOpen: _closeAllDropdowns,
                                   onChanged: (item) {
                                     setState(() {
                                       if (item != null) {
                                         selectedCourseId = item['id'];
                                         courseName = item['text'] ?? '';
+                                        // Clear specialization when course changes
+                                        selectedSpecializationId = null;
+                                        specializationName = '';
                                       } else {
                                         selectedCourseId = null;
                                         courseName = '';
+                                        // Clear specialization if course is cleared
+                                        selectedSpecializationId = null;
+                                        specializationName = '';
                                       }
                                     });
                                     _fetchSpecializationList();
@@ -1196,8 +1249,10 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
                                 ),
                                 _buildLabel('Specialization'),
                                 SearchableDropdownField(
+                                  key: _specializationDropdownKey,
                                   value: specializationName,
                                   items: specializationList,
+                                  onBeforeOpen: _closeAllDropdowns,
                                   onChanged: (val) {
                                     setState(() {
                                       specializationName = val ?? '';
@@ -1217,15 +1272,19 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
                                 ),
                                 _buildLabel('Course Type'),
                                 SearchableDropdownField(
+                                  key: _courseTypeDropdownKey,
                                   value: courseType,
                                   items: courseTypeList,
-                                  onChanged: (val) =>
-                                      setState(() => courseType = val ?? ''),
+                                  onBeforeOpen: _closeAllDropdowns,
+                                  onChanged: (val) => setState(
+                                      () => courseType = val ?? ''),
                                 ),
                                 _buildLabel('Grading System'),
                                 SearchableDropdownField(
+                                  key: _gradingSystemDropdownKey,
                                   value: gradingSystem,
                                   items: gradingSystemList,
+                                  onBeforeOpen: _closeAllDropdowns,
                                   onChanged: (val) {
                                     setState(() => gradingSystem = val ?? '');
                                     _validateMarks();
@@ -1241,6 +1300,7 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
                                 ),
                                 _buildLabel('Year of Passing'),
                                 SearchableDropdownField(
+                                  key: _yearDropdownKey,
                                   value: passingYear,
                                   items: const [
                                     '2019',
@@ -1255,11 +1315,14 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
                                     '2028',
                                     '2029'
                                   ],
-                                  onChanged: (val) =>
-                                      setState(() => passingYear = val ?? ''),
+                                  onBeforeOpen: _closeAllDropdowns,
+                                  onChanged: (val) {
+                                    setState(() => passingYear = val ?? '');
+                                  },
                                 ),
                                 _buildLabel('Month of Passing'),
                                 SearchableDropdownField(
+                                  key: _monthDropdownKey,
                                   value: passingMonth,
                                   items: const [
                                     'Jan',
@@ -1275,6 +1338,7 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
                                     'Nov',
                                     'Dec'
                                   ],
+                                  onBeforeOpen: _closeAllDropdowns,
                                   onChanged: (val) =>
                                       setState(() => passingMonth = val ?? ''),
                                 ),
@@ -1307,7 +1371,7 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
                                       color: Colors.white,
                                       fontSize: 13.7.sp)),
                         ),
-                        SizedBox(height: 50.h),
+                        SizedBox(height: 30.h),
                       ],
                     ),
             ),

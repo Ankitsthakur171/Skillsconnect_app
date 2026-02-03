@@ -100,6 +100,7 @@ class _AppWebViewScreenState extends State<AppWebViewScreen> {
                     crossPlatform: InAppWebViewOptions(
                       javaScriptEnabled: true,
                       mediaPlaybackRequiresUserGesture: false,
+                      transparentBackground: false,
                     ),
                     android: AndroidInAppWebViewOptions(
                       useHybridComposition: true,
@@ -123,11 +124,14 @@ class _AppWebViewScreenState extends State<AppWebViewScreen> {
               AnimatedOpacity(
                 opacity: _isLoading ? 1 : 0,
                 duration: const Duration(milliseconds: 180),
-                child: const Center(
-                  child: SizedBox(
-                    width: 36,
-                    height: 36,
-                    child: CircularProgressIndicator(strokeWidth: 3),
+                child: Container(
+                  color: Colors.white,
+                  child: const Center(
+                    child: SizedBox(
+                      width: 36,
+                      height: 36,
+                      child: CircularProgressIndicator(strokeWidth: 3),
+                    ),
                   ),
                 ),
               ),

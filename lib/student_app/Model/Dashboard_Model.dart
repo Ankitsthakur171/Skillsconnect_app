@@ -346,9 +346,9 @@ class Assessment {
 
   factory Assessment.fromJson(Map<String, dynamic> json) {
     return Assessment(
-      id: json['id'],
-      title: json['title'],
-      status: json['status'],
+      id: json['id'] != null ? json['id'].toString() : null,
+      title: json['title'] != null ? json['title'].toString() : null,
+      status: json['status'] != null ? json['status'].toString() : null,
     );
   }
 }
@@ -366,9 +366,9 @@ class Survey {
 
   factory Survey.fromJson(Map<String, dynamic> json) {
     return Survey(
-      id: json['id'],
-      title: json['title'],
-      status: json['status'],
+      id: json['id'] != null ? json['id'].toString() : null,
+      title: json['title'] != null ? json['title'].toString() : null,
+      status: json['status'] != null ? json['status'].toString() : null,
     );
   }
 }

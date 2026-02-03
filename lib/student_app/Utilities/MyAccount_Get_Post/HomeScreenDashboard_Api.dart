@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../Model/Dashboard_Model.dart';
+import '../../../utils/session_guard.dart';
 
 class HomeScreenDashboardApi {
   static Future<DashboardData?> fetchDashboard({String? customUrl}) async {
@@ -46,6 +47,9 @@ class HomeScreenDashboardApi {
           .timeout(const Duration(seconds: 20));
 
       print('📊 Response Status: ${response.statusCode}');
+
+      // 🔴 Critical: Always check response status with SessionGuard
+      await SessionGuard.scan(statusCode: response.statusCode, body: response.body);
 
       if (response.statusCode != 200) {
         print('❌ Failed: ${response.statusCode}');

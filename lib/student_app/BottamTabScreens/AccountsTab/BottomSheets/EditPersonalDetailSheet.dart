@@ -60,6 +60,9 @@ class _EditPersonalDetailsSheetState extends State<EditPersonalDetailsSheet>
   final GlobalKey _phoneKey = GlobalKey();
   final GlobalKey _whatsappKey = GlobalKey();
   final GlobalKey _emailKey = GlobalKey();
+  final GlobalKey _stateKey = GlobalKey();
+  final GlobalKey _cityKey = GlobalKey();
+  final GlobalKey _saveButtonKey = GlobalKey();
   final FocusNode _firstNameFocusNode = FocusNode();
   final FocusNode _lastNameFocusNode = FocusNode();
   final FocusNode _dobFocusNode = FocusNode();
@@ -72,6 +75,8 @@ class _EditPersonalDetailsSheetState extends State<EditPersonalDetailsSheet>
   final Color _accent = const Color(0xFF005E6A);
   bool _snackBarShown = false;
   OverlayEntry? _overlayEntry;
+  ScrollController? _scrollController;
+  bool _whatsAppSameAsMobile = false;
 
   void _showSnackBarOnce(String message,
       {Color bg = Colors.red, int seconds = 2}) {
@@ -136,39 +141,33 @@ class _EditPersonalDetailsSheetState extends State<EditPersonalDetailsSheet>
         TextEditingController(text: widget.initialData?.email ?? '');
     selectedState = widget.initialData?.state ?? '';
     selectedCity = widget.initialData?.city ?? '';
+    _whatsAppSameAsMobile = whatsappController.text.trim().isNotEmpty &&
+      whatsappController.text.trim() == phoneController.text.trim();
 
     _animationController = AnimationController(
         duration: const Duration(milliseconds: 300), vsync: this);
     _fadeAnimation =
         CurvedAnimation(parent: _animationController, curve: Curves.easeIn);
 
-    _firstNameFocusNode
-        .addListener(() => _ensureVisible(_firstNameKey, _firstNameFocusNode));
-    _lastNameFocusNode
-        .addListener(() => _ensureVisible(_lastNameKey, _lastNameFocusNode));
-    _dobFocusNode.addListener(() => _ensureVisible(_dobKey, _dobFocusNode));
-    _phoneFocusNode
-        .addListener(() => _ensureVisible(_phoneKey, _phoneFocusNode));
-    _whatsappFocusNode
-        .addListener(() => _ensureVisible(_whatsappKey, _whatsappFocusNode));
-    _emailFocusNode
-        .addListener(() => _ensureVisible(_emailKey, _emailFocusNode));
+    // Add listeners to scroll fields into view when focused
+    _firstNameFocusNode.addListener(() => _scrollToField(_firstNameKey));
+    _lastNameFocusNode.addListener(() => _scrollToField(_lastNameKey));
+    _dobFocusNode.addListener(() => _scrollToField(_dobKey));
 
     _fetchStateList();
   }
 
-  void _ensureVisible(GlobalKey key, FocusNode node) {
-    if (node.hasFocus) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (key.currentContext != null) {
-          Scrollable.ensureVisible(
-            key.currentContext!,
-            duration: const Duration(milliseconds: 400),
-            curve: Curves.easeInOut,
-          );
-        }
-      });
-    }
+  void _scrollToField(GlobalKey key) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (key.currentContext != null) {
+        Scrollable.ensureVisible(
+          key.currentContext!,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
+        );
+      }
+    });
   }
 
   Future<void> _fetchStateList() async {
@@ -348,12 +347,23 @@ class _EditPersonalDetailsSheetState extends State<EditPersonalDetailsSheet>
 
   @override
   Widget build(BuildContext context) {
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    
+    // When keyboard opens, scroll to show all content above it
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (keyboardHeight > 0 && _scrollController != null && _scrollController!.hasClients) {
+        final maxScroll = _scrollController!.position.maxScrollExtent;
+        _scrollController!.jumpTo(maxScroll);
+      }
+    });
+
     return DraggableScrollableSheet(
       expand: false,
       initialChildSize: 0.9,
-      maxChildSize: 0.9,
+      maxChildSize: 0.95,
       minChildSize: 0.9,
       builder: (_, scrollController) {
+        _scrollController = scrollController;
         return GestureDetector(
           onTap: () => FocusScope.of(context).unfocus(),
           child: Container(
@@ -403,19 +413,25 @@ class _EditPersonalDetailsSheetState extends State<EditPersonalDetailsSheet>
                         _buildTextField('Select DOB', dobController,
                             readOnly: true,
                             suffixIcon: Icons.calendar_today,
-                            onTap: _selectDate,
+                            onTap: () {
+                              _scrollToField(_dobKey);
+                              Future.delayed(const Duration(milliseconds: 50), _selectDate);
+                            },
                             key: _dobKey,
                             focusNode: _dobFocusNode),
                         _buildLabelWithEdit(
                             'Mobile Number', _openUpdateMobileSheet),
-                        _buildMobileField(),
-                        _buildLabelWithEdit(
-                            'WhatsApp', _openUpdateWhatsAppSheet),
-                        _buildWhatsAppField(),
+                        _buildMobileFieldWithCheckbox(),
+                        if (!_whatsAppSameAsMobile) ...[
+                          _buildLabelWithEdit(
+                              'WhatsApp', _openUpdateWhatsAppSheet),
+                          _buildWhatsAppField(),
+                        ],
                         _buildLabelWithEdit('Email', _openUpdateEmailSheet),
                         _buildRoundedEmailField(),
                         _buildLabel('State'),
                         CustomFieldPersonalDetail(
+                          key: _stateKey,
                           states,
                           selectedState,
                           (val) async {
@@ -428,16 +444,21 @@ class _EditPersonalDetailsSheetState extends State<EditPersonalDetailsSheet>
                             await _fetchCityList();
                           },
                           label: 'Select a state',
+                          onBeforeTap: () => _scrollToField(_stateKey),
                         ),
                         _buildLabel('City'),
                         Stack(
                           children: [
                             CustomFieldPersonalDetail(
+                              key: _cityKey,
                               cities,
                               selectedCity,
-                              (val) => setState(
-                                  () => selectedCity = val ?? cities.first),
+                              (val) {
+                                setState(
+                                    () => selectedCity = val ?? cities.first);
+                              },
                               label: 'Select a city',
+                              onBeforeTap: () => _scrollToField(_cityKey),
                             ),
                             if (isLoadingCities)
                               const Positioned.fill(
@@ -610,11 +631,15 @@ class _EditPersonalDetailsSheetState extends State<EditPersonalDetailsSheet>
     required FocusNode? focusNode,
     required Key? key,
     bool showTick = false,
+    bool readOnly = false,
   }) {
+    final fillColor = readOnly ? Colors.grey.shade200 : _fieldFill;
+    final textColor = readOnly ? Colors.grey.shade700 : Colors.black;
+
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
       decoration: BoxDecoration(
-        color: _fieldFill,
+        color: fillColor,
         borderRadius: BorderRadius.circular(30.r),
         border: Border.all(color: _borderColor, width: 1.2),
       ),
@@ -642,6 +667,9 @@ class _EditPersonalDetailsSheetState extends State<EditPersonalDetailsSheet>
                 FilteringTextInputFormatter.digitsOnly,
                 LengthLimitingTextInputFormatter(10)
               ],
+              readOnly: readOnly,
+              enableInteractiveSelection: !readOnly,
+              showCursor: !readOnly,
               decoration: InputDecoration(
                 hintText: hint,
                 hintStyle: TextStyle(fontSize: 12.4.sp),
@@ -649,8 +677,8 @@ class _EditPersonalDetailsSheetState extends State<EditPersonalDetailsSheet>
                 isDense: true,
                 contentPadding: EdgeInsets.symmetric(vertical: 12.h),
               ),
-              style: TextStyle(fontSize: 12.4.sp),
-              onChanged: (_) => setState(() {}),
+              style: TextStyle(fontSize: 12.4.sp, color: textColor),
+              onChanged: readOnly ? null : (_) => setState(() {}),
             ),
           ),
           if (showTick)
@@ -672,6 +700,59 @@ class _EditPersonalDetailsSheetState extends State<EditPersonalDetailsSheet>
       focusNode: _phoneFocusNode,
       key: _phoneKey,
       showTick: mobileValid,
+      readOnly: true,
+    );
+  }
+
+  Widget _buildMobileFieldWithCheckbox() {
+    final mobileText = phoneController.text.trim();
+    final mobileValid = RegExp(r'^[6-9][0-9]{9}$').hasMatch(mobileText);
+    return Column(
+      children: [
+        _roundedPhoneField(
+          controller: phoneController,
+          hint: 'Enter mobile',
+          focusNode: _phoneFocusNode,
+          key: _phoneKey,
+          showTick: mobileValid,
+          readOnly: true,
+        ),
+        SizedBox(height: 4.h),
+        Row(
+          children: [
+            Transform.scale(
+              scale: 0.85,
+              child: Checkbox(
+                value: _whatsAppSameAsMobile,
+                activeColor: _accent,
+                onChanged: (val) {
+                  setState(() {
+                    _whatsAppSameAsMobile = val ?? false;
+                    if (_whatsAppSameAsMobile) {
+                      whatsappController.text =
+                          phoneController.text.trim();
+                    } else {
+                      if (whatsappController.text.trim() ==
+                          phoneController.text.trim()) {
+                        whatsappController.text = '';
+                      }
+                    }
+                  });
+                },
+              ),
+            ),
+            SizedBox(width: 4.w),
+            Text(
+              'WhatsApp same as mobile',
+              style: TextStyle(
+                fontSize: 12.sp,
+                color: _titleColor,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -682,6 +763,7 @@ class _EditPersonalDetailsSheetState extends State<EditPersonalDetailsSheet>
       focusNode: _whatsappFocusNode,
       key: _whatsappKey,
       showTick: false,
+      readOnly: true,
     );
   }
 
@@ -695,7 +777,7 @@ class _EditPersonalDetailsSheetState extends State<EditPersonalDetailsSheet>
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
       decoration: BoxDecoration(
-          color: _fieldFill,
+          color: Colors.grey.shade200,
           borderRadius: BorderRadius.circular(30.r),
           border: Border.all(color: _borderColor, width: 1.2)),
       child: Row(
@@ -713,6 +795,9 @@ class _EditPersonalDetailsSheetState extends State<EditPersonalDetailsSheet>
               focusNode: _emailFocusNode,
               controller: emailController,
               keyboardType: TextInputType.emailAddress,
+              readOnly: true,
+              enableInteractiveSelection: false,
+              showCursor: false,
               decoration: InputDecoration(
                 hintText: 'Enter Email',
                 hintStyle: TextStyle(fontSize: 12.4.sp),
@@ -720,8 +805,8 @@ class _EditPersonalDetailsSheetState extends State<EditPersonalDetailsSheet>
                 isDense: true,
                 contentPadding: EdgeInsets.symmetric(vertical: 12.h),
               ),
-              style: TextStyle(fontSize: 12.4.sp),
-              onChanged: (_) => setState(() {}),
+              style: TextStyle(fontSize: 12.4.sp, color: Colors.grey.shade700),
+              onChanged: null,
             ),
           ),
           if (emailLooksValid(emailController.text))
@@ -769,7 +854,9 @@ class _EditPersonalDetailsSheetState extends State<EditPersonalDetailsSheet>
         onSuccess: (String newNumber) async {
           phoneController.text = newNumber;
           whatsappController.text = newNumber;
-          setState(() {});
+          setState(() {
+            _whatsAppSameAsMobile = true;
+          });
         },
       ),
     );

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:skillsconnect/utils/session_guard.dart';
 
 import '../../Model/Banner_model.dart';
 import '../../Model/Popular_Job_Model.dart';
@@ -17,6 +18,8 @@ import '../../Utilities/ApiConstants.dart';
 import '../../blocpage/bloc_event.dart';
 import '../../blocpage/bloc_logic.dart';
 import '../JobTab/JobdetailPage/JobdetailpageBT.dart';
+import '../JobTab/JobScreenBT.dart';
+import '../Interveiwtab/InterviewScreen.dart';
 import 'CustomAppbarBT.dart';
 import 'DashboardHeaderSection.dart';
 import '../../Utilities/MyAccount_Get_Post/HomeScreenDashboard_Api.dart';
@@ -48,6 +51,8 @@ class _HomeScreen2State extends State<HomeScreen2> {
   bool _showShimmer = true;
   DashboardData? _dashboardData;
   bool _isLoadingDashboard = true;
+  bool _dashboardError = false;
+  String _dashboardErrorMessage = '';
 
   void _onItemTapped(int index) {
     setState(() {
@@ -59,6 +64,9 @@ class _HomeScreen2State extends State<HomeScreen2> {
   @override
   void initState() {
     super.initState();
+    // Ensure SessionGuard is enabled for student app
+    print('🎯 [HomeScreen2] initState - ensuring SessionGuard is enabled');
+    SessionGuard.enable();
     _checkInternetAndFetch();
     _fetchDashboardData();
     Future.delayed(const Duration(seconds: 1), () {
@@ -113,8 +121,12 @@ class _HomeScreen2State extends State<HomeScreen2> {
           _isLoadingDashboard = false;
           if (data != null) {
             print('✅ [HomeScreen2] Dashboard data loaded - Profile: ${data.profile.name}');
+            _dashboardError = false;
+            _dashboardErrorMessage = '';
           } else {
             print('⚠️ [HomeScreen2] Dashboard data is null - API may have failed');
+            _dashboardError = true;
+            _dashboardErrorMessage = 'Failed to load dashboard data. Please try again later.';
           }
         });
       }
@@ -122,7 +134,11 @@ class _HomeScreen2State extends State<HomeScreen2> {
       print('❌ [HomeScreen2] Error fetching dashboard: $e');
       print('   Stack: $st');
       if (mounted) {
-        setState(() => _isLoadingDashboard = false);
+        setState(() {
+          _isLoadingDashboard = false;
+          _dashboardError = true;
+          _dashboardErrorMessage = 'Error loading dashboard: ${e.toString()}';
+        });
       }
     }
   }
@@ -240,7 +256,48 @@ class _HomeScreen2State extends State<HomeScreen2> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: const HomeScreenAppbar(),
-      body: !_hasInternet
+      body: _dashboardError
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    size: 60.w,
+                    color: Colors.red.shade400,
+                  ),
+                  SizedBox(height: 16.h),
+                  Text(
+                    _dashboardErrorMessage.isEmpty 
+                        ? 'Unable to load dashboard'
+                        : _dashboardErrorMessage,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                  SizedBox(height: 24.h),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _dashboardError = false;
+                        _dashboardErrorMessage = '';
+                      });
+                      _fetchDashboardData();
+                    },
+                    icon: const Icon(Icons.refresh),
+                    label: Text('Try Again', style: TextStyle(fontSize: 12.sp)),
+                    style: ElevatedButton.styleFrom(
+                      padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 10.h),
+                      backgroundColor: Colors.blue,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : !_hasInternet
           ? (_showShimmer
               ? SingleChildScrollView(
                   child: Padding(
@@ -307,9 +364,11 @@ class _HomeScreen2State extends State<HomeScreen2> {
                       _buildDashboardHeaderShimmer(),
                     _sectionHeader("Popular Jobs", actionText: "See all",
                       onActionTap: () {
-                      setState(() => _selectedIndex = 1);
-                      context.read<NavigationBloc>().add(GotoJobScreen2());
-                    },),
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const Jobscreenbtcustom()),
+                        );
+                      },),
                     SizedBox(
                       height: popularJobListHeight.clamp(200.h, 220.h),
                       child: _isLoadingPopular || _showShimmer || _dashboardData == null
@@ -381,9 +440,11 @@ class _HomeScreen2State extends State<HomeScreen2> {
                       ...[
                         _sectionHeader("Interview Scheduled", actionText: "See all",
                           onActionTap: () {
-                          setState(() => _selectedIndex = 2);
-                          context.read<NavigationBloc>().add(GoToInterviewScreen2());
-                        },),
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const InterviewScreenCustom()),
+                            );
+                          },),
                         SizedBox(
                           height: 250.h,
                           child: ListView.builder(

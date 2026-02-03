@@ -95,8 +95,9 @@ class _InterviewScheduleCardState extends State<InterviewScheduleCard> {
       ),
       child: Container(
         width: 300.w,
-        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
@@ -157,7 +158,7 @@ class _InterviewScheduleCardState extends State<InterviewScheduleCard> {
               ],
             ),
 
-            SizedBox(height: 10.h),
+            SizedBox(height: 8.h),
 
             /// Interview name
             Text(
@@ -171,7 +172,7 @@ class _InterviewScheduleCardState extends State<InterviewScheduleCard> {
               ),
             ),
 
-            SizedBox(height: 6.h),
+            SizedBox(height: 5.h),
 
             /// Date & time
             Text(
@@ -184,9 +185,9 @@ class _InterviewScheduleCardState extends State<InterviewScheduleCard> {
               ),
             ),
 
-            SizedBox(height: 8.h),
+            SizedBox(height: 6.h),
             Divider(thickness: 0.7, color: Colors.grey.withOpacity(0.3)),
-            SizedBox(height: 8.h),
+            SizedBox(height: 6.h),
 
             /// Mode badge
             Container(
@@ -211,7 +212,7 @@ class _InterviewScheduleCardState extends State<InterviewScheduleCard> {
               ),
             ),
 
-            SizedBox(height: 10.h),
+            SizedBox(height: 8.h),
 
             /// Buttons
             if (widget.interview.meetingMode == 'offline' || widget.interview.meetingMode == 'in-office')

@@ -36,6 +36,7 @@ class _JobDetailPage2State extends State<JobDetailPage2> {
   bool isLoading = true;
   String? error;
   bool isLocationExpanded = false;
+  bool isQualificationExpanded = false;
   bool isBookmarked = false;
   bool _snackBarShown = false;
   int? _moduleIdEffective;
@@ -65,6 +66,7 @@ class _JobDetailPage2State extends State<JobDetailPage2> {
       jobDetail = null;
       error = null;
       isLocationExpanded = false;
+      isQualificationExpanded = false;
       _initialIsBookmarkedSet = false;
       _initialIsBookmarked = false;
       _bookmarkChanged = false;
@@ -713,19 +715,34 @@ class _JobDetailPage2State extends State<JobDetailPage2> {
                             children: [
                               _buildHeader(jobDetail),
                               _jobSummaryExtras(jobDetail),
-                              _sectionTitle(
-                                  'Responsibilities of the Candidate:'),
-                              _bulletSection(
-                                  jobDetail?['responsibilities'] ?? []),
-                              _sectionTitle('Requirements:'),
-                              _bulletSection(jobDetail?['requirements'] ?? []),
-                              _sectionTitle('Nice to Have:'),
-                              _bulletSection(jobDetail?['niceToHave'] ?? []),
-                              _sectionTitle('About Company'),
-                              _bulletSection(jobDetail?['aboutCompany'] ?? []),
-                              _sectionTitle('Application Process'),
-                              _applicationProcessScroll(
-                                  jobDetail?['application_process'] ?? []),
+                              // Responsibilities section - only render if data exists
+                              if ((jobDetail?['responsibilities'] as List?)?.isNotEmpty ?? false) ...[
+                                _sectionTitle(
+                                    'Responsibilities of the Candidate:'),
+                                _bulletSection(
+                                    jobDetail?['responsibilities'] ?? []),
+                              ],
+                              // Requirements section - only render if data exists
+                              if ((jobDetail?['requirements'] as List?)?.isNotEmpty ?? false) ...[
+                                _sectionTitle('Requirements:'),
+                                _bulletSection(jobDetail?['requirements'] ?? []),
+                              ],
+                              // Nice to Have section - only render if data exists
+                              if ((jobDetail?['niceToHave'] as List?)?.isNotEmpty ?? false) ...[
+                                _sectionTitle('Nice to Have:'),
+                                _bulletSection(jobDetail?['niceToHave'] ?? []),
+                              ],
+                              // About Company section - only render if data exists
+                              if ((jobDetail?['aboutCompany'] as List?)?.isNotEmpty ?? false) ...[
+                                _sectionTitle('About Company'),
+                                _bulletSection(jobDetail?['aboutCompany'] ?? []),
+                              ],
+                              // Application Process section - only render if data exists
+                              if ((jobDetail?['application_process'] as List?)?.isNotEmpty ?? false) ...[
+                                _sectionTitle('Application Process'),
+                                _applicationProcessScroll(
+                                    jobDetail?['application_process'] ?? []),
+                              ],
                             ],
                           ),
                         ),
@@ -1290,6 +1307,14 @@ class _JobDetailPage2State extends State<JobDetailPage2> {
     return widgets;
   }
 
+  /// Helper method to check if a field is not empty, handles both strings and lists
+  bool _isFieldNotEmpty(dynamic field) {
+    if (field == null) return false;
+    if (field is String) return field.toString().trim().isNotEmpty;
+    if (field is List) return (field as List).isNotEmpty;
+    return false;
+  }
+
   Widget _sectionTitle(String title) => Padding(
         padding: EdgeInsets.only(top: 12.h, bottom: 6.h),
         child: Text(
@@ -1523,78 +1548,86 @@ class _JobDetailPage2State extends State<JobDetailPage2> {
             ),
           ],
         ),
-        _sectionTitle('Probation Duration'),
-        Container(
-          width: double.infinity,
-          padding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 14.w),
-          decoration: BoxDecoration(
-            color: const Color(0xFFEBF6F7),
-            borderRadius: BorderRadius.circular(12.r),
-            border: Border.all(color: Colors.grey.shade200),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
-              ),
-            ],
+        // Probation Duration - only render if data exists
+        if (probationDuration.isNotEmpty) ...[
+          _sectionTitle('Probation Duration'),
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 14.w),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEBF6F7),
+              borderRadius: BorderRadius.circular(12.r),
+              border: Border.all(color: Colors.grey.shade200),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Text(
+              probationDuration,
+              style: subHeadingStyle.copyWith(fontSize: 14.sp),
+            ),
           ),
-          child: Text(
-            probationDuration.isNotEmpty ? probationDuration : 'N/A',
-            style: subHeadingStyle.copyWith(fontSize: 14.sp),
+        ],
+        // CTC Breakdown - only render if any data exists
+        if (fixedPay.isNotEmpty || variablePay.isNotEmpty || otherIncentives.isNotEmpty) ...[
+          _sectionTitle('CTC Breakdown'),
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 14.w),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEBF6F7),
+              borderRadius: BorderRadius.circular(12.r),
+              border: Border.all(color: Colors.grey.shade200),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (fixedPay.isNotEmpty) _keyValueRow('Fixed pay', fixedPay),
+                if (variablePay.isNotEmpty)
+                  _keyValueRow('Variable pay', variablePay),
+                if (otherIncentives.isNotEmpty)
+                  _keyValueRow('Other incentives', otherIncentives),
+              ],
+            ),
           ),
-        ),
-        _sectionTitle('CTC Breakdown'),
-        Container(
-          width: double.infinity,
-          padding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 14.w),
-          decoration: BoxDecoration(
-            color: const Color(0xFFEBF6F7),
-            borderRadius: BorderRadius.circular(12.r),
-            border: Border.all(color: Colors.grey.shade200),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
-              ),
-            ],
+        ],
+        // Qualification - only render if data exists
+        if (_isFieldNotEmpty(job?['qualification'])) ...[
+          _sectionTitle('Qualification'),
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 14.w),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEBF6F7),
+              borderRadius: BorderRadius.circular(12.r),
+              border: Border.all(color: Colors.grey.shade200),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: _qualificationWidget(job),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (fixedPay.isNotEmpty) _keyValueRow('Fixed pay', fixedPay),
-              if (variablePay.isNotEmpty)
-                _keyValueRow('Variable pay', variablePay),
-              if (otherIncentives.isNotEmpty)
-                _keyValueRow('Other incentives', otherIncentives),
-              if (fixedPay.isEmpty &&
-                  variablePay.isEmpty &&
-                  otherIncentives.isEmpty)
-                Text('Not specified', style: infoLightStyle),
-            ],
-          ),
-        ),
-        _sectionTitle('Qualification'),
-        Container(
-          width: double.infinity,
-          padding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 14.w),
-          decoration: BoxDecoration(
-            color: const Color(0xFFEBF6F7),
-            borderRadius: BorderRadius.circular(12.r),
-            border: Border.all(color: Colors.grey.shade200),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: _qualificationWidget(job),
-        ),
-        _sectionTitle('Location'),
-        _locationBlock(job),
+        ],
+        // Location - only render if data exists
+        if (_isFieldNotEmpty(job?['location']) || _isFieldNotEmpty(job?['three_cities_name'])) ...[
+          _sectionTitle('Location'),
+          _locationBlock(job),
+        ],
       ],
     );
   }
@@ -1644,25 +1677,71 @@ class _JobDetailPage2State extends State<JobDetailPage2> {
           style: infoStyle.copyWith(color: Colors.grey[700]));
     }
 
-    return Wrap(
-      spacing: 8.w,
-      runSpacing: 8.h,
-      children: list.map((m) {
-        final course = m['course'] ?? '';
-        final spec = m['spec'] ?? '';
-        final label = course.isNotEmpty && spec.isNotEmpty
-            ? '$course - $spec'
-            : course + spec;
+    const collapsed = 3;
+    final bool needToggle = list.length > collapsed;
+    final List<Map<String, String>> shown = (!needToggle || isQualificationExpanded)
+        ? list
+        : list.sublist(0, collapsed);
 
-        return Container(
-          padding: EdgeInsets.symmetric(vertical: 4.h, horizontal: 1.w),
-          decoration: BoxDecoration(
-            color: const Color(0xFFEFF8F9),
-            borderRadius: BorderRadius.circular(12.r),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: 8.w,
+          runSpacing: 8.h,
+          children: shown.map((m) {
+            final course = m['course'] ?? '';
+            final spec = m['spec'] ?? '';
+            final label = course.isNotEmpty && spec.isNotEmpty
+                ? '$course - $spec'
+                : course + spec;
+
+            return Container(
+              padding: EdgeInsets.symmetric(vertical: 6.h, horizontal: 8.w),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEFF8F9),
+                borderRadius: BorderRadius.circular(12.r),
+              ),
+              child: Text(
+                label,
+                style: infoStyle.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF005E6A),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+        if (needToggle)
+          Padding(
+            padding: EdgeInsets.only(top: 12.h),
+            child: GestureDetector(
+              onTap: () =>
+                  setState(() => isQualificationExpanded = !isQualificationExpanded),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    isQualificationExpanded ? 'Show less' : 'Show more...',
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF005E6A),
+                    ),
+                  ),
+                  SizedBox(width: 6.w),
+                  Icon(
+                    isQualificationExpanded
+                        ? Icons.remove_circle_outline
+                        : Icons.add_circle_outline,
+                    color: const Color(0xFF005E6A),
+                    size: 18.sp,
+                  ),
+                ],
+              ),
+            ),
           ),
-          child: Text(label, style: infoStyle),
-        );
-      }).toList(),
+      ],
     );
   }
 
@@ -1726,25 +1805,29 @@ class _JobDetailPage2State extends State<JobDetailPage2> {
         }
       }
     } catch (_) {}
-    final List<String> lines = [];
+    final List<Map<String, dynamic>> locationItems = [];
     if (grouped.isNotEmpty) {
       grouped.forEach((state, cities) {
         final cityList = cities.toList()..sort();
-        if (cityList.isEmpty) {
-          lines.add(state);
-        } else {
-          lines.add('$state - ${cityList.join(', ')}');
-        }
+        locationItems.add({
+          'state': state,
+          'cities': cityList,
+        });
       });
     } else {
       final fallback = (job?['location'] as String?)?.trim() ?? 'N/A';
-      lines.add(fallback.isNotEmpty ? fallback : 'N/A');
+      if (fallback.isNotEmpty) {
+        locationItems.add({
+          'state': fallback,
+          'cities': [],
+        });
+      }
     }
     const collapsed = 2;
-    final bool needToggle = lines.length > collapsed;
-    final List<String> shown = (!needToggle || isLocationExpanded)
-        ? lines
-        : lines.sublist(0, collapsed);
+    final bool needToggle = locationItems.length > collapsed;
+    final List<Map<String, dynamic>> shown = (!needToggle || isLocationExpanded)
+        ? locationItems
+        : locationItems.sublist(0, collapsed);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1754,28 +1837,68 @@ class _JobDetailPage2State extends State<JobDetailPage2> {
             color: const Color(0xFFEBF6F7),
             borderRadius: BorderRadius.circular(10.r),
           ),
-          padding: EdgeInsets.symmetric(vertical: 10.h, horizontal: 12.w),
+          padding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 12.w),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(height: 8.h),
-              ...shown.map((l) => Padding(
-                    padding: EdgeInsets.only(bottom: 6.h),
-                    child: Text(l,
-                        style: infoStyle.copyWith(color: Colors.grey[800])),
-                  )),
-              if (needToggle)
-                GestureDetector(
-                  onTap: () =>
-                      setState(() => isLocationExpanded = !isLocationExpanded),
-                  child: Padding(
-                    padding: EdgeInsets.only(top: 0),
-                    child: Text(
-                      isLocationExpanded ? 'Show less' : 'Show more',
-                      style: headingStyle.copyWith(
-                        fontSize: 14.sp,
-                        color: const Color(0xFF005E6A),
+              ...shown.map((item) {
+                final state = item['state'] as String? ?? '';
+                final cities = (item['cities'] as List? ?? []).cast<String>();
+                return Padding(
+                  padding: EdgeInsets.only(bottom: 10.h),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        state,
+                        style: infoStyle.copyWith(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15.sp,
+                          color: const Color(0xFF005E6A),
+                        ),
                       ),
+                      if (cities.isNotEmpty)
+                        Padding(
+                          padding: EdgeInsets.only(top: 4.h),
+                          child: Text(
+                            cities.join(', '),
+                            style: infoStyle.copyWith(
+                              fontWeight: FontWeight.w400,
+                              fontSize: 13.sp,
+                              color: Colors.grey[700],
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                );
+              }),
+              if (needToggle)
+                Padding(
+                  padding: EdgeInsets.only(top: 10.h),
+                  child: GestureDetector(
+                    onTap: () =>
+                        setState(() => isLocationExpanded = !isLocationExpanded),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          isLocationExpanded ? 'Show less' : 'Show more...',
+                          style: TextStyle(
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF005E6A),
+                          ),
+                        ),
+                        SizedBox(width: 6.w),
+                        Icon(
+                          isLocationExpanded
+                              ? Icons.remove_circle_outline
+                              : Icons.add_circle_outline,
+                          color: const Color(0xFF005E6A),
+                          size: 18.sp,
+                        ),
+                      ],
                     ),
                   ),
                 ),

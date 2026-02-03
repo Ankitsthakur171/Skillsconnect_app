@@ -252,6 +252,7 @@ class _SplashScreenState extends State<SplashScreen> {
       create: (_) => SplashBloc()..add(StartSplash()),
       child: BlocListener<SplashBloc, SplashState>(
         listener: (context, state) async {
+          print('🎯 [SplashScreen] BlocListener TRIGGERED with state: ${state.runtimeType}');
           await _wipePendingOnSplash(); // double-sure before we leave Splash
           // 👇 Add this here
           if (mounted) {
@@ -262,6 +263,7 @@ class _SplashScreenState extends State<SplashScreen> {
           final userId = p.getString('user_id') ?? '';
           print("⚠️ BG: =$userId");
           if (state is AuthenticatedJob) {
+            print('🎯 [SplashScreen] State is AuthenticatedJob - enabling guard');
             SessionGuard.enable();   // 🔸 ab se scan kaam karega
 
             // Navigator.pushReplacement(
@@ -289,6 +291,7 @@ class _SplashScreenState extends State<SplashScreen> {
               (_) => false,
             );
           } else if (state is AuthenticatedTPO) {
+            print('🎯 [SplashScreen] State is AuthenticatedTPO - enabling guard');
             SessionGuard.enable();   // 🔸 ab se scan kaam karega
             if (!context.mounted) return;
             Navigator.of(context).pushAndRemoveUntil(

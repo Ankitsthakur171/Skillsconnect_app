@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'ApiConstants.dart';
+import '../../utils/session_guard.dart';
 
 class JobFilterApi {
   static Future<List<Map<String, dynamic>>> fetchJobs({
@@ -51,6 +52,8 @@ class JobFilterApi {
       print("JobFilterApi → Response Body: ${response.body}");
 
       if (response.statusCode != 200) {
+        // 🔴 Critical: Check for auth errors
+        await SessionGuard.scan(statusCode: response.statusCode, body: response.body);
         throw Exception("Failed to load jobs: HTTP ${response.statusCode}");
       }
 

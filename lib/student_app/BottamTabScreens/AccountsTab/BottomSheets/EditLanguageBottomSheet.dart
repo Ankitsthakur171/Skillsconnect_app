@@ -30,10 +30,11 @@ class _LanguageBottomSheetState extends State<LanguageBottomSheet>
   bool _loadingMore = false;
   int _currentPage = 1;
   bool _hasMoreData = true;
+  static const int _pageSize = 10;
 
   List<LanguageMasterModel> masterLanguages = [];
   LanguageMasterModel? selectedLanguage;
-  late String selectedProficiency;
+  String? selectedProficiency;
   late ScrollController _languageScrollController;
 
   final List<String> _proficiencyLevels = [
@@ -97,8 +98,7 @@ class _LanguageBottomSheetState extends State<LanguageBottomSheet>
     super.initState();
     _languageScrollController = ScrollController();
     _languageScrollController.addListener(_onLanguageScrollListener);
-    selectedProficiency =
-        widget.initialData?.proficiency ?? _proficiencyLevels[0];
+    selectedProficiency = widget.initialData?.proficiency;
 
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 300),
@@ -114,52 +114,71 @@ class _LanguageBottomSheetState extends State<LanguageBottomSheet>
   void _onLanguageScrollListener() {
     final position = _languageScrollController.position;
     final maxScrollExtent = position.maxScrollExtent;
+    final scrollPercent = maxScrollExtent > 0 ? (position.pixels / maxScrollExtent * 100).toStringAsFixed(1) : '0';
     
-    print('📜 [EditLanguageBottomSheet] Scroll: ${position.pixels.toStringAsFixed(0)}/${maxScrollExtent.toStringAsFixed(0)}');
+    print('📋 [LanguageDropdown] Scroll: ${position.pixels.toStringAsFixed(0)}/${maxScrollExtent.toStringAsFixed(0)} (${scrollPercent}%) | Page: $_currentPage | Loading: $_loadingMore | HasMore: $_hasMoreData');
     
     // Load more when scrolled to 90% or reached end
-    if (position.pixels >= maxScrollExtent * 0.9 && !_loadingMore && _hasMoreData) {
-      print('📜 [EditLanguageBottomSheet] Triggering load more at 90% scroll');
-      _loadMoreLanguages();
+    if (position.pixels >= maxScrollExtent * 0.9) {
+      if (_loadingMore) {
+        print('⏳ [LanguageDropdown] 90% threshold reached but ALREADY LOADING - ignoring');
+      } else if (!_hasMoreData) {
+        print('⏹️ [LanguageDropdown] 90% threshold reached but NO MORE DATA - ignoring');
+      } else {
+        print('🔔 [LanguageDropdown] ✅ 90% threshold reached on page $_currentPage - CALLING _loadMoreLanguages()');
+        _loadMoreLanguages();
+      }
     }
   }
 
   Future<void> _loadLanguages() async {
-    print('📋 [EditLanguageBottomSheet] Loading languages page: $_currentPage');
+    print('\n🚀 [LanguageBottomSheet] ====== LOADING INITIAL LANGUAGES ======');
+    print('🚀 [LanguageBottomSheet] Page: $_currentPage, PageSize: $_pageSize');
     try {
       setState(() => isLoading = true);
       
       // Fetch first page from API
-      final languagesFromApi = await LanguageListApi.fetchLanguages(page: _currentPage);
-      print('📋 [EditLanguageBottomSheet] Received ${languagesFromApi.length} languages from API');
+      print('🚀 [LanguageBottomSheet] 📡 CALLING API.fetchLanguages(page: $_currentPage, limit: $_pageSize)');
+      final languagesFromApi = await LanguageListApi.fetchLanguages(
+        page: _currentPage,
+        limit: _pageSize,
+      );
+      print('✅ [LanguageBottomSheet] API returned ${languagesFromApi.length} languages');
+      for (var i = 0; i < languagesFromApi.length; i++) {
+        print('   [$i] ID: ${languagesFromApi[i].languageId} - ${languagesFromApi[i].languageName}');
+      }
 
       if (!mounted) return;
 
-      LanguageMasterModel defaultLang = languagesFromApi.isNotEmpty
-          ? languagesFromApi.first
-          : LanguageMasterModel(languageId: 0, languageName: "No languages");
-
-      LanguageMasterModel selectedFromApi;
+      LanguageMasterModel? selectedFromApi;
       if (widget.initialData != null &&
           widget.initialData!.languageName.isNotEmpty) {
+        final fallback = languagesFromApi.isNotEmpty
+            ? languagesFromApi.first
+            : null;
         selectedFromApi = languagesFromApi.firstWhere(
           (l) =>
               l.languageName.toLowerCase() ==
               widget.initialData!.languageName.toLowerCase(),
-          orElse: () => defaultLang,
+          orElse: () => fallback ?? LanguageMasterModel(languageId: 0, languageName: "No languages"),
         );
       } else {
-        selectedFromApi = defaultLang;
+        // No initial data → keep null to show placeholder
+        selectedFromApi = null;
       }
 
       setState(() {
         masterLanguages = languagesFromApi;
-        _hasMoreData = languagesFromApi.length >= 10; // Assume more data if we got 10 items
+        _hasMoreData = languagesFromApi.length >= _pageSize;
         selectedLanguage = selectedFromApi;
         isLoading = false;
       });
       
-      print('📋 [EditLanguageBottomSheet] Total languages loaded: ${masterLanguages.length}, hasMore: $_hasMoreData');
+      print('✅ [LanguageBottomSheet] Set state completed:');
+      print('   • Total languages: ${masterLanguages.length}');
+      print('   • HasMore: $_hasMoreData (API returned ${languagesFromApi.length}, threshold: $_pageSize)');
+      print('   • Selected: ${selectedLanguage?.languageName ?? 'NONE'}');
+      print('🚀 [LanguageBottomSheet] ====== INITIAL LOAD COMPLETE ======\n');
 
       _animationController.forward();
     } catch (e) {
@@ -171,33 +190,53 @@ class _LanguageBottomSheetState extends State<LanguageBottomSheet>
   }
 
   Future<void> _loadMoreLanguages() async {
+    print('\n🔄 [LanguageBottomSheet] ====== LOAD MORE TRIGGERED ======');
     if (_loadingMore || !_hasMoreData) {
-      print('📋 [EditLanguageBottomSheet] Skip load more - loading: $_loadingMore, hasMore: $_hasMoreData');
+      print('⏸️ [LanguageBottomSheet] SKIPPED - Loading: $_loadingMore | HasMore: $_hasMoreData');
       return;
     }
 
-    print('📋 [EditLanguageBottomSheet] Loading more languages...');
     setState(() {
-      _loadingMore = true;
       _currentPage++;
+      _loadingMore = true;
     });
+    print('🔄 [LanguageBottomSheet] Increment page to: $_currentPage, pageSize: $_pageSize');
 
     try {
       // Fetch next page from API
-      final languagesFromApi = await LanguageListApi.fetchLanguages(page: _currentPage);
-      print('📋 [EditLanguageBottomSheet] Received ${languagesFromApi.length} languages from API for page $_currentPage');
+      print('🔄 [LanguageBottomSheet] 📡 CALLING API.fetchLanguages(page: $_currentPage, limit: $_pageSize)');
+      final languagesFromApi = await LanguageListApi.fetchLanguages(
+        page: _currentPage,
+        limit: _pageSize,
+      );
+      print('✅ [LanguageBottomSheet] API returned ${languagesFromApi.length} languages for page $_currentPage');
+      for (var i = 0; i < languagesFromApi.length; i++) {
+        print('   [$i] ID: ${languagesFromApi[i].languageId} - ${languagesFromApi[i].languageName}');
+      }
       
       if (!mounted) return;
 
+      final existingIds = masterLanguages.map((l) => l.languageId).toSet();
+      print('🔄 [LanguageBottomSheet] Deduplicating - existing IDs: ${existingIds.length}');
+      final newLanguages = languagesFromApi
+          .where((l) => !existingIds.contains(l.languageId))
+          .toList();
+      
+      print('🔄 [LanguageBottomSheet] After dedup: ${newLanguages.length} NEW languages to add (${languagesFromApi.length} - ${languagesFromApi.length - newLanguages.length} duplicates)');
+
       setState(() {
-        masterLanguages.addAll(languagesFromApi);
-        _hasMoreData = languagesFromApi.length >= 10; // More data available if we got 10 items
+        masterLanguages.addAll(newLanguages);
+        _hasMoreData = languagesFromApi.length >= _pageSize;
         _loadingMore = false;
       });
       
-      print('📋 [EditLanguageBottomSheet] Total languages now: ${masterLanguages.length}, hasMore: $_hasMoreData');
+      print('✅ [LanguageBottomSheet] Set state completed:');
+      print('   • Total languages: ${masterLanguages.length}');
+      print('   • HasMore: $_hasMoreData (API returned ${languagesFromApi.length}, threshold: $_pageSize)');
+      print('🔄 [LanguageBottomSheet] ====== LOAD MORE COMPLETE ======\n');
     } catch (e) {
-      print('❌ [EditLanguageBottomSheet] Error loading more languages: $e');
+      print('❌ [LanguageBottomSheet] ERROR: $e');
+      print('🔄 [LanguageBottomSheet] ====== LOAD MORE FAILED ======\n');
       if (!mounted) return;
       setState(() => _loadingMore = false);
     }
@@ -316,7 +355,7 @@ class _LanguageBottomSheetState extends State<LanguageBottomSheet>
   Widget _buildLanguageDropdown() {
     return CustomFieldLanguageDropdown<LanguageMasterModel>(
       masterLanguages.isNotEmpty
-          ? masterLanguages
+          ? List<LanguageMasterModel>.from(masterLanguages)
           : [
               LanguageMasterModel(
                   languageId: 0, languageName: "No languages available")
@@ -340,7 +379,7 @@ class _LanguageBottomSheetState extends State<LanguageBottomSheet>
     return CustomFieldLanguageDropdown<String>(
       _proficiencyLevels,
       selectedProficiency,
-      (val) => setState(() => selectedProficiency = val ?? ""),
+      (val) => setState(() => selectedProficiency = val),
       hintText: "Select proficiency",
     );
   }
@@ -379,7 +418,7 @@ class _LanguageBottomSheetState extends State<LanguageBottomSheet>
   }
 
   Future<void> _handleSubmit() async {
-    if (selectedLanguage == null || selectedProficiency.isEmpty) {
+    if (selectedLanguage == null || (selectedProficiency ?? '').isEmpty) {
       _showSnackBarOnce("Please fill all required fields");
       return;
     }
@@ -404,7 +443,7 @@ class _LanguageBottomSheetState extends State<LanguageBottomSheet>
       id: widget.initialData?.id,
       languageId: selectedLanguage!.languageId,
       languageName: selectedLanguage!.languageName,
-      proficiency: selectedProficiency,
+      proficiency: selectedProficiency ?? '',
     );
 
     final res = await LanguageDetailApi.updateLanguages(

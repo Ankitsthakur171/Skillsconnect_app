@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../Model/WorkExperience_Model.dart';
 import '../ApiConstants.dart';
+import '../../../utils/session_guard.dart';
 
 class WorkExperienceApi {
   static Future<List<WorkExperienceModel>> fetchWorkExperienceApi({
@@ -23,10 +24,11 @@ class WorkExperienceApi {
       request.headers.addAll(headers);
 
       http.StreamedResponse response = await request.send();
+      final String responseBody = await response.stream.bytesToString();
+      await SessionGuard.scan(statusCode: response.statusCode, body: responseBody);
 
       if (response.statusCode == 200) {
-        final String jsonString = await response.stream.bytesToString();
-        final Map<String, dynamic> data = jsonDecode(jsonString);
+        final Map<String, dynamic> data = jsonDecode(responseBody);
 
         final List<dynamic> workExperienceList = data['workExperience'] ?? [];
         return workExperienceList
@@ -74,6 +76,7 @@ class WorkExperienceApi {
             "✅ [saveWorkExperience] Work Experience Saved: ${decoded['msg']}");
         return true;
       } else {
+        await SessionGuard.scan(statusCode: response.statusCode, body: response.body);
         print("❌ [saveWorkExperience] Failed to save. Status: ${response.statusCode}, Response: ${response.body}");
 
         return false;
@@ -114,6 +117,7 @@ class WorkExperienceApi {
         print('✅ Work Experience $workExperienceId deleted successfully');
         return true;
       } else {
+        await SessionGuard.scan(statusCode: response.statusCode, body: responseBody);
         print(
             '❌ Failed to delete Work Experience $workExperienceId → [${response.statusCode}]');
         return false;

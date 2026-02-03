@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../../Model/Image_update_Model.dart';
 import '../ApiConstants.dart';
+import '../../../utils/session_guard.dart';
 
 class LoadImageApi {
   static Future<ImageUpdateModel?> fetchUserImage({
@@ -22,10 +23,11 @@ class LoadImageApi {
       request.headers.addAll(headers);
 
       final response = await request.send();
+      final responseBody = await response.stream.bytesToString();
+      await SessionGuard.scan(statusCode: response.statusCode, body: responseBody);
 
       if (response.statusCode == 200) {
-        final jsonString = await response.stream.bytesToString();
-        final Map<String, dynamic> data = jsonDecode(jsonString);
+        final Map<String, dynamic> data = jsonDecode(responseBody);
 
 
         final List<dynamic> personalDetails = data['personalDetails'] ?? [];

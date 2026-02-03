@@ -40,6 +40,15 @@ class _EditWorkExperienceBottomSheetState
   final GlobalKey _fromDateKey = GlobalKey();
   final GlobalKey _toDateKey = GlobalKey();
 
+  final GlobalKey _fromMonthDropdownKey = GlobalKey();
+  final GlobalKey _fromYearDropdownKey = GlobalKey();
+  final GlobalKey _toMonthDropdownKey = GlobalKey();
+  final GlobalKey _toYearDropdownKey = GlobalKey();
+  final GlobalKey _experienceYearDropdownKey = GlobalKey();
+  final GlobalKey _experienceMonthDropdownKey = GlobalKey();
+  final GlobalKey _salaryLakhsDropdownKey = GlobalKey();
+  final GlobalKey _salaryThousandsDropdownKey = GlobalKey();
+
   ScrollController? _sheetScrollController;
 
   late String _fromMonth;
@@ -172,6 +181,17 @@ class _EditWorkExperienceBottomSheetState
   void _onFieldFocus(FocusNode node, GlobalKey key) {
     if (!node.hasFocus) return;
     _scrollIntoView(key);
+  }
+
+  void _closeAllDropdowns() {
+    (_fromMonthDropdownKey.currentState as dynamic)?.closeDropdown();
+    (_fromYearDropdownKey.currentState as dynamic)?.closeDropdown();
+    (_toMonthDropdownKey.currentState as dynamic)?.closeDropdown();
+    (_toYearDropdownKey.currentState as dynamic)?.closeDropdown();
+    (_experienceYearDropdownKey.currentState as dynamic)?.closeDropdown();
+    (_experienceMonthDropdownKey.currentState as dynamic)?.closeDropdown();
+    (_salaryLakhsDropdownKey.currentState as dynamic)?.closeDropdown();
+    (_salaryThousandsDropdownKey.currentState as dynamic)?.closeDropdown();
   }
 
   void _scrollIntoView(GlobalKey targetKey) {
@@ -312,10 +332,16 @@ class _EditWorkExperienceBottomSheetState
               color: Colors.white,
               borderRadius: BorderRadius.vertical(top: Radius.circular(18.1.r)),
             ),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                children: [
+            child: Listener(
+              behavior: HitTestBehavior.translucent,
+              onPointerDown: (_) {
+                _closeAllDropdowns();
+                FocusScope.of(context).unfocus();
+              },
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -356,6 +382,8 @@ class _EditWorkExperienceBottomSheetState
                           (val) => setState(() => _fromMonth = val),
                           (val) => setState(() => _fromYear = val),
                           rowKey: _fromDateKey,
+                          monthDropdownKey: _fromMonthDropdownKey,
+                          yearDropdownKey: _fromYearDropdownKey,
                         ),
                         _buildLabel("To Date"),
                         _buildDateRow(
@@ -364,6 +392,8 @@ class _EditWorkExperienceBottomSheetState
                           (val) => setState(() => _toMonth = val),
                           (val) => setState(() => _toYear = val),
                           rowKey: _toDateKey,
+                          monthDropdownKey: _toMonthDropdownKey,
+                          yearDropdownKey: _toYearDropdownKey,
                         ),
                         _buildLabel("Experience"),
                         Row(
@@ -378,6 +408,8 @@ class _EditWorkExperienceBottomSheetState
                                     items: List.generate(31, (i) => "$i"),
                                     onChanged: (val) =>
                                         setState(() => experienceInYear = val!),
+                                    dropdownKey: _experienceYearDropdownKey,
+                                    onBeforeOpen: _closeAllDropdowns,
                                   ),
                                 ],
                               ),
@@ -393,6 +425,8 @@ class _EditWorkExperienceBottomSheetState
                                     items: List.generate(12, (i) => "${i + 1}"),
                                     onChanged: (val) => setState(
                                         () => experienceInMonths = val!),
+                                    dropdownKey: _experienceMonthDropdownKey,
+                                    onBeforeOpen: _closeAllDropdowns,
                                   ),
                                 ],
                               ),
@@ -412,6 +446,8 @@ class _EditWorkExperienceBottomSheetState
                                     items: List.generate(31, (i) => "$i"),
                                     onChanged: (val) =>
                                         setState(() => salaryInLakhs = val!),
+                                    dropdownKey: _salaryLakhsDropdownKey,
+                                    onBeforeOpen: _closeAllDropdowns,
                                   ),
                                 ],
                               ),
@@ -448,6 +484,8 @@ class _EditWorkExperienceBottomSheetState
                                     ],
                                     onChanged: (val) => setState(
                                         () => salaryInThousands = val!),
+                                    dropdownKey: _salaryThousandsDropdownKey,
+                                    onBeforeOpen: _closeAllDropdowns,
                                   ),
                                 ],
                               ),
@@ -486,7 +524,8 @@ class _EditWorkExperienceBottomSheetState
                           ),
                   ),
                   SizedBox(height: 30.h),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -513,15 +552,19 @@ class _EditWorkExperienceBottomSheetState
     required String value,
     required List<String> items,
     required void Function(String?) onChanged,
+    GlobalKey? dropdownKey,
+    VoidCallback? onBeforeOpen,
   }) {
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 5.4.h),
       child: NonSearchableDropdownField(
+        key: dropdownKey,
         value:
             value.isNotEmpty && items.contains(value) ? value : items.first,
         items: items,
         onChanged: onChanged,
         label: 'Please select',
+        onBeforeOpen: onBeforeOpen,
       ),
     );
   }
@@ -535,7 +578,10 @@ class _EditWorkExperienceBottomSheetState
         controller: controller,
         focusNode: focusNode,
         readOnly: readOnly,
-        onTap: onTap,
+        onTap: () {
+          _closeAllDropdowns();
+          onTap?.call();
+        },
         decoration: InputDecoration(
           hintText: hintText,
           hintStyle: TextStyle(fontSize: 12.4.sp),
@@ -558,7 +604,7 @@ class _EditWorkExperienceBottomSheetState
   }
 
   Widget _buildDateRow(String month, String year,
-      Function(String) onMonthChanged, Function(String) onYearChanged, {GlobalKey? rowKey}) {
+      Function(String) onMonthChanged, Function(String) onYearChanged, {GlobalKey? rowKey, required GlobalKey monthDropdownKey, required GlobalKey yearDropdownKey}) {
     final months = [
       'Jan',
       'Feb',
@@ -588,6 +634,8 @@ class _EditWorkExperienceBottomSheetState
               value: month,
               items: months,
               onChanged: (val) => onMonthChanged(val!),
+              dropdownKey: monthDropdownKey,
+              onBeforeOpen: _closeAllDropdowns,
             ),
           ),
           SizedBox(width: 14.4.w),
@@ -596,6 +644,8 @@ class _EditWorkExperienceBottomSheetState
               value: year,
               items: years,
               onChanged: (val) => onYearChanged(val!),
+              dropdownKey: yearDropdownKey,
+              onBeforeOpen: _closeAllDropdowns,
             ),
           ),
         ],

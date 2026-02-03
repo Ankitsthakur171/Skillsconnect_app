@@ -6,6 +6,7 @@ class CustomFieldPersonalDetail extends StatefulWidget {
   final String value;
   final ValueChanged<String?> onChanged;
   final String label;
+  final VoidCallback? onBeforeTap;
 
   const CustomFieldPersonalDetail(
       this.items,
@@ -13,6 +14,7 @@ class CustomFieldPersonalDetail extends StatefulWidget {
       this.onChanged, {
         super.key,
         this.label = 'Select an option',
+        this.onBeforeTap,
       });
 
   @override
@@ -49,17 +51,8 @@ class _CustomFieldPersonalDetailState extends State<CustomFieldPersonalDetail> {
   }
 
   void _handleFocusChange() {
-    print('Focus Change: hasFocus: ${_focusNode.hasFocus}, Overlay: $_overlayEntry');
-    if (_focusNode.hasFocus && _overlayEntry == null) {
-      _toggleDropdown();
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Scrollable.ensureVisible(
-          _key.currentContext!,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-        );
-        print('PostFrame: Ensured visibility, Focus: ${_focusNode.hasFocus}');
-      });
+    if (!_focusNode.hasFocus && _overlayEntry != null) {
+      _removeOverlay();
     }
   }
 
@@ -69,23 +62,28 @@ class _CustomFieldPersonalDetailState extends State<CustomFieldPersonalDetail> {
       _searchController.clear();
       _overlayEntry = _createOverlayEntry();
       Overlay.of(context).insert(_overlayEntry!);
-      _focusNode.requestFocus();
-      print('ToggleDropdown: Overlay created, Focus requested: ${_focusNode.hasFocus}');
+      
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        widget.onBeforeTap?.call();
+      });
+      print('ToggleDropdown: Overlay created');
     } else {
       _removeOverlay();
+      _focusNode.unfocus();
     }
   }
 
   void _removeOverlay() {
     _overlayEntry?.remove();
     _overlayEntry = null;
-    print('RemoveOverlay: Overlay removed');
+    _focusNode.unfocus();
+    print('RemoveOverlay: Overlay removed, Focus unfocused');
   }
 
   void _selectItem(String item) {
     widget.onChanged(item);
     _removeOverlay();
-    print('SelectItem: Selected $item, Focus: ${_focusNode.hasFocus}');
+    print('SelectItem: Selected $item');
   }
 
   OverlayEntry _createOverlayEntry() {
@@ -103,79 +101,99 @@ class _CustomFieldPersonalDetailState extends State<CustomFieldPersonalDetail> {
     bool openAbove = availableSpaceBelow < fixedDropdownHeight && availableSpaceAbove > availableSpaceBelow;
 
     return OverlayEntry(
-      builder: (context) => Positioned(
-        width: size.width,
-        child: CompositedTransformFollower(
-          link: _layerLink,
-          showWhenUnlinked: false,
-          offset: Offset(0, openAbove ? -(fixedDropdownHeight + 4) : size.height + 4),
-          child: StatefulBuilder(
-            builder: (context, setState) {
-              return Material(
-                elevation: 4,
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  width: size.width,
-                  height: fixedDropdownHeight,
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      TextField(
-                        controller: _searchController,
-                        focusNode: _focusNode,
-                        decoration: const InputDecoration(
-                          hintText: 'Search...',
-                          isDense: true,
-                          contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                        ),
-                        onChanged: (query) {
-                          print('OnChanged: Query: $query, Focus: ${_focusNode.hasFocus}');
-                          _debounce?.cancel();
-                          _debounce = Timer(const Duration(milliseconds: 300), () {
-                            setState(() {
-                              _filteredItems = widget.items
-                                  .where((item) => item.toLowerCase().contains(query.toLowerCase()))
-                                  .toSet()
-                                  .toList();
-                              _overlayEntry?.markNeedsBuild();
-                              print('Debounce: Filtered to ${_filteredItems.length} items, Focus: ${_focusNode.hasFocus}');
-                            });
-                          });
-                        },
-                      ),
-                      const SizedBox(height: 4),
-                      Expanded(
-                        child: Scrollbar(
-                          child: ListView.builder(
-                            padding: EdgeInsets.zero,
-                            itemCount: _filteredItems.length,
-                            itemBuilder: (context, index) {
-                              final item = _filteredItems[index];
-                              return ListTile(
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-                                dense: true,
-                                title: Text(item),
-                                onTap: () => _selectItem(item),
-                                selected: widget.value == item,
-                                selectedTileColor: Colors.blue.shade50,
-                              );
-                            },
+      builder: (context) => GestureDetector(
+        onTap: _removeOverlay,
+        child: Stack(
+          children: [
+            // Transparent overlay covering entire screen
+            Positioned.fill(
+              child: Container(
+                color: Colors.transparent,
+              ),
+            ),
+            // Dropdown positioned
+            Positioned(
+              width: size.width,
+              child: CompositedTransformFollower(
+                link: _layerLink,
+                showWhenUnlinked: false,
+                offset: Offset(0, openAbove ? -(fixedDropdownHeight + 4) : size.height + 4),
+                child: GestureDetector(
+                  onTap: () {}, // Prevent closing when tapping dropdown
+                  child: StatefulBuilder(
+                    builder: (context, setOverlayState) {
+                      return Material(
+                        elevation: 4,
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          width: size.width,
+                          height: fixedDropdownHeight,
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.grey),
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              TextField(
+                                controller: _searchController,
+                                focusNode: _focusNode,
+                                autofocus: false,
+                                decoration: const InputDecoration(
+                                  hintText: 'Search...',
+                                  isDense: true,
+                                  contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                                  border: OutlineInputBorder(),
+                                ),
+                                onChanged: (query) {
+                                  _debounce?.cancel();
+                                  _debounce = Timer(const Duration(milliseconds: 300), () {
+                                    setOverlayState(() {
+                                      _filteredItems = widget.items
+                                          .where((item) => item.toLowerCase().contains(query.toLowerCase()))
+                                          .toSet()
+                                          .toList();
+                                    });
+                                  });
+                                },
+                              ),
+                              const SizedBox(height: 8),
+                              Expanded(
+                                child: _filteredItems.isEmpty
+                                    ? const Center(
+                                        child: Text('No items found'),
+                                      )
+                                    : Scrollbar(
+                                        child: ListView.builder(
+                                          padding: EdgeInsets.zero,
+                                          itemCount: _filteredItems.length,
+                                          itemBuilder: (context, index) {
+                                            final item = _filteredItems[index];
+                                            return ListTile(
+                                              contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                                              dense: true,
+                                              title: Text(item),
+                                              onTap: () => _selectItem(item),
+                                              selected: widget.value == item,
+                                              selectedTileColor: Colors.blue.shade50,
+                                            );
+                                          },
+                                        ),
+                                      ),
+                              ),
+                            ],
                           ),
                         ),
-                      ),
-                    ],
+                      );
+                    },
                   ),
                 ),
-              );
-            },
-          ),
+              ),
+            ),
+          ],
         ),
       ),
     );

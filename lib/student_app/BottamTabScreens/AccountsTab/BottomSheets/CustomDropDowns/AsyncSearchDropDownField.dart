@@ -7,6 +7,7 @@ class AsyncSearchableDropdownField extends StatefulWidget {
       fetcher;
   final void Function(Map<String, String>?) onChanged;
   final String label;
+  final VoidCallback? onBeforeOpen;
 
   const AsyncSearchableDropdownField({
     super.key,
@@ -14,6 +15,7 @@ class AsyncSearchableDropdownField extends StatefulWidget {
     required this.fetcher,
     required this.onChanged,
     this.label = "Select an option",
+    this.onBeforeOpen,
   });
 
   @override
@@ -163,6 +165,7 @@ class _AsyncSearchableDropdownFieldState
 
   void _toggleDropdown() {
     if (_overlayEntry == null) {
+      widget.onBeforeOpen?.call();
       debugPrint('[AsyncDropdown] opening overlay');
       _overlayEntry = _createOverlayEntry();
       Overlay.of(context)!.insert(_overlayEntry!);
@@ -196,6 +199,13 @@ class _AsyncSearchableDropdownFieldState
     _focusNode.unfocus();
     debugPrint(
         '[AsyncDropdown] overlay removed (items cached=${_items.length})');
+  }
+
+  // Public method to close overlay from parent
+  void closeDropdown() {
+    if (_overlayEntry != null) {
+      _removeOverlay();
+    }
   }
 
   void _selectItem(Map<String, String> item) {

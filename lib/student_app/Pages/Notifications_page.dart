@@ -6,6 +6,8 @@ import '../Model/Notification_Model.dart';
 import '../Utilities/Get_All_Notifications.dart';
 import '../blocpage/NotificationBloc/notification_bloc.dart';
 import '../blocpage/NotificationBloc/notification_event.dart';
+import '../blocpage/bloc_logic.dart';
+import '../blocpage/bloc_event.dart';
 
 class NotificationsScreensd extends StatefulWidget {
   const NotificationsScreensd({super.key});
@@ -120,6 +122,22 @@ class _NotificationsScreenState extends State<NotificationsScreensd> {
     return DateFormat('d MMM').format(t);
   }
 
+  void _handleLinkNavigation(String link) {
+    print('🔗 [NotificationsPage] Handling navigation for link: $link');
+    
+    // Close the notifications page
+    Navigator.of(context).pop<int>(_unreadCount());
+    
+    // Navigate to appropriate tab based on link content
+    if (link.contains('interviewControlRoom')) {
+      print('➡️ Navigating to Interview tab');
+      context.read<NavigationBloc>().add(GoToInterviewScreen2());
+    } else if (link.contains('jobs')) {
+      print('➡️ Navigating to Jobs tab');
+      context.read<NavigationBloc>().add(GotoJobScreen2());
+    }
+  }
+
   Future<bool> _onWillPop() async {
     Navigator.of(context).pop<int>(_unreadCount());
     return false;
@@ -167,8 +185,8 @@ class _NotificationsScreenState extends State<NotificationsScreensd> {
         ),
         body: _loading
             ? const Center(
-            child: CircularProgressIndicator()
-        )
+                child: CircularProgressIndicator()
+              )
             : _error != null
                 ? Center(
                     child: Padding(
@@ -180,51 +198,58 @@ class _NotificationsScreenState extends State<NotificationsScreensd> {
                       ),
                     ),
                   )
-                : notifications.isEmpty
-                    ? Center(
-                        child: Text(
-                          'No notifications',
-                          style: TextStyle(fontSize: 13.sp),
-                        ),
-                      )
-                    : Column(
+                : Column(
+                    children: [
+                      SizedBox(height: 8.h),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          SizedBox(height: 8.h),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              _filterChip("All", 0),
-                              SizedBox(width: 8.w),
-                              _filterChip("Unread (${_unreadCount()})", 1),
-                            ],
-                          ),
-                          SizedBox(height: 8.h),
-                          Expanded(
-                            child: RefreshIndicator(
-                              onRefresh: _loadNotifications,
-                              child: ListView.builder(
-                                padding: EdgeInsets.only(
-                                  left: 12.w,
-                                  right: 12.w,
-                                  top: 12.w,
-                                  bottom: 40.h,
-                                ),
-                                itemCount: filtered.length,
-                                itemBuilder: (_, i) {
-                                  final item = filtered[i];
-                                  final cleanText = stripHtml(item.body);
-                                  final link = extractLink(item.body);
-                                  return GestureDetector(
-                                    onTap: () => _markAsRead(item),
-                                    child: _notificationCard(
-                                        item, cleanText, link),
-                                  );
-                                },
-                              ),
-                            ),
-                          ),
+                          _filterChip("All", 0),
+                          SizedBox(width: 8.w),
+                          _filterChip("Unread (${_unreadCount()})", 1),
                         ],
                       ),
+                      SizedBox(height: 8.h),
+                      Expanded(
+                        child: notifications.isEmpty
+                            ? Center(
+                                child: Text(
+                                  'No notifications',
+                                  style: TextStyle(fontSize: 13.sp),
+                                ),
+                              )
+                            : _tab == 1 && filtered.isEmpty
+                                ? Center(
+                                    child: Text(
+                                      'No notification available',
+                                      style: TextStyle(fontSize: 13.sp),
+                                    ),
+                                  )
+                                : RefreshIndicator(
+                                    onRefresh: _loadNotifications,
+                                    child: ListView.builder(
+                                      padding: EdgeInsets.only(
+                                        left: 12.w,
+                                        right: 12.w,
+                                        top: 12.w,
+                                        bottom: 40.h,
+                                      ),
+                                      itemCount: filtered.length,
+                                      itemBuilder: (_, i) {
+                                        final item = filtered[i];
+                                        final cleanText = stripHtml(item.body);
+                                        final link = extractLink(item.body);
+                                        return GestureDetector(
+                                          onTap: () => _markAsRead(item),
+                                          child: _notificationCard(
+                                              item, cleanText, link),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                      ),
+                    ],
+                  ),
       ),
     );
   }
@@ -243,6 +268,7 @@ class _NotificationsScreenState extends State<NotificationsScreensd> {
       ),
       selected: selected,
       selectedColor: const Color(0xFF005E6A),
+      checkmarkColor: Colors.white,
       backgroundColor: Colors.teal.shade50,
       onSelected: (_) => setState(() => _tab = index),
       shape: RoundedRectangleBorder(
@@ -305,7 +331,7 @@ class _NotificationsScreenState extends State<NotificationsScreensd> {
                         width: 8.w,
                         height: 8.w,
                         decoration: BoxDecoration(
-                          shape: BoxShape.circle,
+                          shape: BoxShape.circle, 
                           color: Colors.red.shade400,
                         ),
                       )
@@ -317,6 +343,7 @@ class _NotificationsScreenState extends State<NotificationsScreensd> {
                       ? null
                       : () {
                           print("Tapped link: $link");
+                          _handleLinkNavigation(link);
                         },
                   child: Text(
                     cleanText,

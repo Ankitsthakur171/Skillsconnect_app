@@ -20,10 +20,14 @@ import '../HR/Calling/call_kit.dart';
 import '../app_globals.dart';
 import 'package:skillsconnect/HR/Calling/call_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:skillsconnect/HR/bloc/Notification/notification_bloc.dart';
-import 'package:skillsconnect/HR/bloc/Notification/notification_event.dart';
+import 'package:skillsconnect/HR/bloc/Notification/notification_bloc.dart' as hr_notif;
+import 'package:skillsconnect/HR/bloc/Notification/notification_event.dart' as hr_notif_event;
 import 'package:skillsconnect/HR/model/notification_model.dart';
 import 'package:skillsconnect/HR/screens/notification_screen.dart';
+// Student notification imports
+import 'package:skillsconnect/student_app/blocpage/NotificationBloc/notification_bloc.dart' as student_notif;
+import 'package:skillsconnect/student_app/blocpage/NotificationBloc/notification_event.dart' as student_notif_event;
+import 'package:skillsconnect/student_app/Model/Notification_Model.dart' as student_notif_model;
 
 String? globalFcmToken;
 
@@ -569,7 +573,7 @@ class FirebaseApi {
     _fm.onTokenRefresh.listen((t) async {
       globalFcmToken = t;
       await sendFcmTokenToServer(t);
-    });
+    }); 
 
     /* ---------------------- CallKit event handler ---------------------- */
     _callkitSub?.cancel();
@@ -623,7 +627,6 @@ class FirebaseApi {
           // 🔽 accept ke baad bhi pump
           _pumpPendingJoin();
 
-
           try {
             await FlutterCallkitIncoming.setCallConnected(callId);
             print("🔗 [DEBUG] setCallConnected() success for $callId");
@@ -664,7 +667,7 @@ class FirebaseApi {
 
           // ✅ always clear stack & open CallScreen (no matter which screen is open)
           await _forceOpenCallScreenReplacingStack(enriched);
-// immediately purge
+          // immediately purge
           await prefs.remove('pending_join');
           await prefs.remove('pending_join_at');
           await prefs.setBool('pending_boot_pump', false);
@@ -795,38 +798,87 @@ class FirebaseApi {
   Future<void> sendFcmTokenToServer(String token) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final authToken = prefs.getString('auth_token');
-      if (authToken == null || authToken.isEmpty) return;
+      // Check student key first ('authToken'), then fallback to HR key ('auth_token')
+      final authToken = prefs.getString('authToken') ?? prefs.getString('auth_token') ?? '';
+      if (authToken.isEmpty) return;
 
+      print('📲 [FCM] Sending FCM token to server with auth: ${authToken.substring(0, 20)}...');
       await http.post(
         Uri.parse('${BASE_URL}common/update-fcm-token'),
         headers: {'Content-Type': 'application/json','Authorization': 'Bearer $authToken'},
         body: jsonEncode({'fcmToken': token}),
       );
-    } catch (_) {}
+      print('📲 [FCM] ✅ FCM token sent successfully');
+    } catch (e) {
+      print('📲 [FCM] ❌ Error sending FCM token: $e');
+    }
   }
 
-  /* ---------------- generic app notifications ---------------- */
   void _handleNotification(BuildContext context, RemoteMessage msg, {bool openScreen = false}) {
     try {
       final n = msg.notification;
       final d = msg.data;
       if (n == null) return;
 
-      final model = NotificationModel(
-        title: n.title ?? 'No title',
-        description: n.body ?? 'No body',
-        timeAgo: 'Just now',
-        id: int.tryParse(d['id'] ?? '') ?? 0,
-        readStatus: d['read_status'] ?? 'No',
-        fromUserId: int.tryParse('${d['from_user_id'] ?? ''}') ?? 0,
-        toUserId: int.tryParse('${d['to_user_id'] ?? ''}') ?? 0,
-      );
+      print('📲 [FCM] _handleNotification called - title: ${n.title}, body: ${n.body}');
 
+      // Try student NotificationBloc first (primary)
       try {
-        final bloc = BlocProvider.of<NotificationBloc>(context, listen: false);
-        bloc.add(AddNotification(notification: model));
-      } catch (_) {}
+        print('📲 [FCM] Attempting to find StudentNotificationBloc...');
+        final studentBloc = context.findAncestorWidgetOfExactType<BlocProvider<student_notif.NotificationBloc>>();
+        if (studentBloc != null) {
+          print('📲 [FCM] ✅ Found StudentNotificationBloc - adding notification');
+          final studentNotification = student_notif_model.AppNotification(
+            id: int.tryParse(d['id'] ?? '') ?? 0,
+            title: n.title ?? 'No title',
+            body: n.body ?? 'No body',
+            readStatus: d['read_status'] ?? 'No',
+            createdAt: DateTime.now(),
+          );
+          try {
+            context.read<student_notif.NotificationBloc>().add(
+              student_notif_event.AddNotification(notification: studentNotification)
+            );
+            print('📲 [FCM] ✅ Successfully added notification to StudentNotificationBloc');
+            return;
+          } catch (e) {
+            print('📲 [FCM] ❌ Error adding to StudentNotificationBloc: $e');
+          }
+        }
+      } catch (e) {
+        print('📲 [FCM] ℹ️ StudentNotificationBloc not available: $e');
+      }
+
+      // Fallback to HR NotificationBloc
+      try {
+        print('📲 [FCM] Attempting fallback to HRNotificationBloc...');
+        final hrModel = NotificationModel(
+          title: n.title ?? 'No title',
+          description: n.body ?? 'No body',
+          timeAgo: 'Just now',
+          id: int.tryParse(d['id'] ?? '') ?? 0,
+          readStatus: d['read_status'] ?? 'No',
+          fromUserId: int.tryParse('${d['from_user_id'] ?? ''}') ?? 0,
+          toUserId: int.tryParse('${d['to_user_id'] ?? ''}') ?? 0,
+        );
+
+        final hrBloc = context.findAncestorWidgetOfExactType<BlocProvider<hr_notif.NotificationBloc>>();
+        if (hrBloc != null) {
+          print('📲 [FCM] ✅ Found HRNotificationBloc - adding notification');
+          try {
+            context.read<hr_notif.NotificationBloc>().add(
+              hr_notif_event.AddNotification(notification: hrModel)
+            );
+            print('📲 [FCM] ✅ Successfully added notification to HRNotificationBloc');
+          } catch (e) {
+            print('📲 [FCM] ❌ Error adding to HRNotificationBloc: $e');
+          }
+        } else {
+          print('📲 [FCM] ⚠️ HRNotificationBloc not found either');
+        }
+      } catch (e) {
+        print('📲 [FCM] ❌ Error with HR fallback: $e');
+      }
 
       if (openScreen) {
         try {
@@ -835,7 +887,9 @@ class FirebaseApi {
           );
         } catch (_) {}
       }
-    } catch (_) {}
+    } catch (e) {
+      print('📲 [FCM] ❌ Error in _handleNotification: $e');
+    }
   }
 
   void dispose() { _callkitSub?.cancel(); }

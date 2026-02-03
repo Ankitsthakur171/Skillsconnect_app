@@ -7,6 +7,7 @@ class SearchableDropdownField extends StatefulWidget {
   final Function(String?) onChanged;
   final String label;
   final String? decoration;
+  final VoidCallback? onBeforeOpen;
 
   const SearchableDropdownField({
     super.key,
@@ -15,6 +16,7 @@ class SearchableDropdownField extends StatefulWidget {
     required this.onChanged,
     this.label = 'Select an option',
     this.decoration,
+    this.onBeforeOpen,
   });
 
   @override
@@ -57,12 +59,11 @@ class _SearchableDropdownFieldState extends State<SearchableDropdownField> {
 
   void _toggleDropdown() {
     if (_overlayEntry == null) {
+      widget.onBeforeOpen?.call();
       _filteredItems = widget.items.toList();
       _searchController.clear();
       _overlayEntry = _createOverlayEntry();
       Overlay.of(context).insert(_overlayEntry!);
-      // Removed auto-focus to prevent keyboard from opening automatically
-      // _focusNode.requestFocus();
     } else {
       _removeOverlay();
     }
@@ -72,6 +73,13 @@ class _SearchableDropdownFieldState extends State<SearchableDropdownField> {
     _overlayEntry?.remove();
     _overlayEntry = null;
     _focusNode.unfocus();
+  }
+
+  // Public method to close overlay from parent
+  void closeDropdown() {
+    if (_overlayEntry != null) {
+      _removeOverlay();
+    }
   }
 
   void _selectItem(String item) {
@@ -229,6 +237,7 @@ class NonSearchableDropdownField extends StatefulWidget {
   final Function(String?) onChanged;
   final String label;
   final String? decoration;
+  final VoidCallback? onBeforeOpen;
 
   const NonSearchableDropdownField({
     super.key,
@@ -237,6 +246,7 @@ class NonSearchableDropdownField extends StatefulWidget {
     required this.onChanged,
     this.label = 'Select an option',
     this.decoration,
+    this.onBeforeOpen,
   });
 
   @override
@@ -279,12 +289,11 @@ class _NonSearchableDropdownFieldState extends State<NonSearchableDropdownField>
 
   void _toggleDropdown() {
     if (_overlayEntry == null) {
+      widget.onBeforeOpen?.call();
       _filteredItems = widget.items.toList();
       _searchController.clear();
       _overlayEntry = _createOverlayEntry();
       Overlay.of(context).insert(_overlayEntry!);
-      // Removed auto-focus to prevent keyboard from opening automatically
-      // _focusNode.requestFocus();
     } else {
       _removeOverlay();
     }
@@ -294,6 +303,13 @@ class _NonSearchableDropdownFieldState extends State<NonSearchableDropdownField>
     _overlayEntry?.remove();
     _overlayEntry = null;
     _focusNode.unfocus();
+  }
+
+  // Public method to close overlay from parent
+  void closeDropdown() {
+    if (_overlayEntry != null) {
+      _removeOverlay();
+    }
   }
 
   void _selectItem(String item) {

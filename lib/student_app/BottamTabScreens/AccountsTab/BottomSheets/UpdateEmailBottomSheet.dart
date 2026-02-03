@@ -33,7 +33,7 @@ class _UpdateEmailBottomSheetState extends State<UpdateEmailBottomSheet> {
 
   final Color _titleColor = const Color(0xFF003840);
   final Color _borderColor = const Color(0xFFD0DDDC);
-  final Color _fieldFill = const Color(0xFFF0F7F7);
+  final Color _fieldFill =  Colors.grey.shade100;
   final Color _accent = const Color(0xFF005E6A);
 
   bool _sending = false;

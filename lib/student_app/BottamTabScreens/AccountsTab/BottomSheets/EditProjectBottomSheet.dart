@@ -129,6 +129,7 @@ class _EditProjectDetailsBottomSheetState extends State<EditProjectDetailsBottom
 
   void _onFieldFocus(FocusNode node, GlobalKey key) {
     if (!node.hasFocus) return;
+    _closeAllDropdowns();
     _scrollIntoView(key);
   }
 
@@ -163,6 +164,11 @@ class _EditProjectDetailsBottomSheetState extends State<EditProjectDetailsBottom
     _detailsFocusNode.dispose();
     _animationController.dispose();
     super.dispose();
+  }
+
+  void _closeAllDropdowns() {
+    (_typeKey.currentState as dynamic)?.closeDropdown();
+    (_durationPeriodKey.currentState as dynamic)?.closeDropdown();
   }
 
   String? getUserIdFromToken(String authToken) {
@@ -262,7 +268,10 @@ class _EditProjectDetailsBottomSheetState extends State<EditProjectDetailsBottom
       builder: (context, scrollController) {
         _sheetScrollController = scrollController;
         return GestureDetector(
-          onTap: () => FocusScope.of(context).unfocus(),
+          onTap: () {
+            FocusScope.of(context).unfocus();
+            _closeAllDropdowns();
+          },
           child: FadeTransition(
             opacity: _fadeAnimation,
             child: Container(
@@ -306,17 +315,15 @@ class _EditProjectDetailsBottomSheetState extends State<EditProjectDetailsBottom
                         padding: EdgeInsets.only(bottom: 18.h),
                         children: [
                         _buildLabel("Project Type"),
-                        GestureDetector(
+                        CustomFieldProjectDropdown(
+                          ['Internship', 'Project'],
+                          type,
+                          (val) {
+                            setState(() => type = val ?? 'Project');
+                          },
                           key: _typeKey,
-                          onTap: () => _scrollIntoView(_typeKey),
-                          child: CustomFieldProjectDropdown(
-                            ['Internship', 'Project'],
-                            type,
-                            (val) {
-                              setState(() => type = val ?? 'Project');
-                            },
-                            label: 'Please select',
-                          ),
+                          label: 'Please select',
+                          onBeforeOpen: _closeAllDropdowns,
                         ),
                     _buildLabel("Project Name"),
                     _buildTextField(
@@ -352,17 +359,15 @@ class _EditProjectDetailsBottomSheetState extends State<EditProjectDetailsBottom
                       hintText: 'Enter duration like 14',
                     ),
                         _buildLabel("Duration Period"),
-                        GestureDetector(
+                        CustomFieldProjectDropdown(
+                          ['Days', 'Weeks', 'Month'],
+                          durationPeriod,
+                          (val) {
+                            setState(() => durationPeriod = val ?? 'Days');
+                          },
                           key: _durationPeriodKey,
-                          onTap: () => _scrollIntoView(_durationPeriodKey),
-                          child: CustomFieldProjectDropdown(
-                            ['Days', 'Weeks', 'Month'],
-                            durationPeriod,
-                            (val) {
-                              setState(() => durationPeriod = val ?? 'Days');
-                            },
-                            label: 'Please select',
-                          ),
+                          label: 'Please select',
+                          onBeforeOpen: _closeAllDropdowns,
                         ),
                         _buildLabel("Project Details"),
                         _buildTextField(
@@ -376,6 +381,7 @@ class _EditProjectDetailsBottomSheetState extends State<EditProjectDetailsBottom
                       ],
                     ),
                   ),
+        
                   SizedBox(height: 5.h),
                   ElevatedButton(
                     onPressed: saving ? null : _handleSave,

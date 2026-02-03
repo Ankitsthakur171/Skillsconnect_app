@@ -6,6 +6,7 @@ class CustomFieldProjectDropdown extends StatefulWidget {
   final String value;
   final ValueChanged<String?> onChanged;
   final String label;
+  final VoidCallback? onBeforeOpen;
 
   const CustomFieldProjectDropdown(
       this.items,
@@ -13,6 +14,7 @@ class CustomFieldProjectDropdown extends StatefulWidget {
       this.onChanged, {
         super.key,
         this.label = 'Select an option',
+        this.onBeforeOpen,
       });
 
   @override
@@ -65,6 +67,7 @@ class _CustomFieldProjectDropdownState extends State<CustomFieldProjectDropdown>
 
   void _toggleDropdown() {
     if (_overlayEntry == null) {
+      widget.onBeforeOpen?.call();
       _filteredItems = widget.items.toSet().toList();
       _searchController.clear();
       _overlayEntry = _createOverlayEntry();
@@ -80,6 +83,13 @@ class _CustomFieldProjectDropdownState extends State<CustomFieldProjectDropdown>
     _overlayEntry?.remove();
     _overlayEntry = null;
     print('RemoveOverlay: Overlay removed');
+  }
+
+  // Public method to close overlay from parent
+  void closeDropdown() {
+    if (_overlayEntry != null) {
+      _removeOverlay();
+    }
   }
 
   void _selectItem(String item) {

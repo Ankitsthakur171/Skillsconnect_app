@@ -2,6 +2,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'ApiConstants.dart';
+import '../../utils/session_guard.dart';
 
 class SpecializationListApi {
   /// Returns list of maps with id and text for each specialization.
@@ -33,6 +34,8 @@ class SpecializationListApi {
       print("🔍 Specialization API response for courseId '$courseId': $resBody");
 
       if (response.statusCode != 200) {
+        // 🔴 Critical: Check for auth errors
+        await SessionGuard.scan(statusCode: response.statusCode, body: resBody);
         print("❌ Specialization API failed: ${response.statusCode} - ${response.reasonPhrase}");
         return [];
       }

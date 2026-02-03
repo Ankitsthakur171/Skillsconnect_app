@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:skillsconnect/utils/session_guard.dart';
 import 'BottamTabScreens/AccountsTab/AccountScreen.dart';
 import 'BottamTabScreens/ContactsTab/ContactsScreen.dart';
 import 'BottamTabScreens/Home/homeScreen.dart';
@@ -14,8 +15,21 @@ import 'ProfileLogic/ProfileEvent.dart';
 import 'blocpage/BookmarkBloc/bookmarkLogic.dart';
 import 'blocpage/jobFilterBloc/jobFilter_logic.dart';
 
-class StudentRoot extends StatelessWidget {
+class StudentRoot extends StatefulWidget {
   const StudentRoot({super.key});
+
+  @override
+  State<StudentRoot> createState() => _StudentRootState();
+}
+
+class _StudentRootState extends State<StudentRoot> {
+  @override
+  void initState() {
+    super.initState();
+    // Ensure SessionGuard is enabled when student app is active
+    print('🎯 [StudentRoot] initState called - ensuring SessionGuard is enabled');
+    SessionGuard.enable();
+  }
 
   @override
   Widget build(BuildContext context) {

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../../Model/Languages_Model.dart';
 import '../ApiConstants.dart';
+import '../../../utils/session_guard.dart';
 
 class LanguageDetailApi {
   static Future<List<LanguagesModel>> fetchLanguages({
@@ -18,9 +19,13 @@ class LanguageDetailApi {
 
       final request = http.Request('GET', url)..headers.addAll(headers);
       final streamedResponse = await request.send();
+      final responseBody = await streamedResponse.stream.bytesToString();
+      await SessionGuard.scan(
+        statusCode: streamedResponse.statusCode,
+        body: responseBody,
+      );
 
       if (streamedResponse.statusCode == 200) {
-        final responseBody = await streamedResponse.stream.bytesToString();
         final jsonData = json.decode(responseBody);
 
         if (jsonData is Map &&
@@ -65,6 +70,7 @@ class LanguageDetailApi {
         ..body = body;
       final response = await request.send();
       final responseBody = await response.stream.bytesToString();
+      await SessionGuard.scan(statusCode: response.statusCode, body: responseBody);
 
       if (response.statusCode == 200) {
         final jsonData = json.decode(responseBody);
@@ -125,6 +131,7 @@ class LanguageDetailApi {
       final request = http.Request('DELETE', url)..headers.addAll(headers);
       final response = await request.send();
       final responseBody = await response.stream.bytesToString();
+      await SessionGuard.scan(statusCode: response.statusCode, body: responseBody);
 
       if (response.statusCode == 200) {
         return true;

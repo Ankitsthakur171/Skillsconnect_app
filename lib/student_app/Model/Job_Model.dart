@@ -1,5 +1,7 @@
 
 
+import 'package:intl/intl.dart';
+
 class JobModelsd {
   final String jobToken;
   final String jobTitle;
@@ -72,8 +74,7 @@ class JobModelsd {
     );
   }
 
-  /// Calculate days left until end_date, or hours if less than 1 day.
-  /// Returns formatted string like "5 days left", "12 hours left", or "N/A" if no end_date.
+  /// Get formatted end date in "dd MMM yyyy" format, or "Expired" if already passed
   String getTimeLeft() {
     if (endDate == null || endDate!.isEmpty) {
       print('[JobModel] No endDate for job: $jobTitle, endDate: $endDate');
@@ -85,13 +86,8 @@ class JobModelsd {
       if (expireTime.isBefore(now)) {
         return 'Expired';
       }
-      final diff = expireTime.difference(now);
-      if (diff.inDays > 0) {
-        return '${diff.inDays} day${diff.inDays > 1 ? 's' : ''} left';
-      } else {
-        final hours = diff.inHours;
-        return '$hours hour${hours > 1 ? 's' : ''} left';
-      }
+      // Format as "dd MMM yyyy" (e.g., "15 Jan 2026")
+      return DateFormat('dd MMM yyyy').format(expireTime);
     } catch (e) {
       print('[JobModel] Error parsing endDate "$endDate" for job $jobTitle: $e');
       return 'N/A';
