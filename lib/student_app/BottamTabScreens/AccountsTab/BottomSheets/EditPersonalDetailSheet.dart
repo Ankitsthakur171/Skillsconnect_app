@@ -133,16 +133,22 @@ class _EditPersonalDetailsSheetState extends State<EditPersonalDetailsSheet>
         TextEditingController(text: widget.initialData?.dateOfBirth ?? '');
     phoneController =
         TextEditingController(text: widget.initialData?.mobile ?? '');
+    
+    // ✅ Check if WhatsApp is same as mobile BEFORE initializing controller
+    final initialWhatsApp = widget.initialData?.whatsAppNumber ?? '';
+    final initialMobile = widget.initialData?.mobile ?? '';
+    final isSameAsInitial = initialWhatsApp.isNotEmpty && initialWhatsApp == initialMobile;
+    
     whatsappController = TextEditingController(
-        text: widget.initialData?.whatsAppNumber ??
-            widget.initialData?.mobile ??
-            '');
+        text: isSameAsInitial ? initialMobile : initialWhatsApp);
+    
     emailController =
         TextEditingController(text: widget.initialData?.email ?? '');
     selectedState = widget.initialData?.state ?? '';
     selectedCity = widget.initialData?.city ?? '';
-    _whatsAppSameAsMobile = whatsappController.text.trim().isNotEmpty &&
-      whatsappController.text.trim() == phoneController.text.trim();
+    
+    // ✅ Set checkbox based on initial data
+    _whatsAppSameAsMobile = isSameAsInitial;
 
     _animationController = AnimationController(
         duration: const Duration(milliseconds: 300), vsync: this);
@@ -423,8 +429,7 @@ class _EditPersonalDetailsSheetState extends State<EditPersonalDetailsSheet>
                             'Mobile Number', _openUpdateMobileSheet),
                         _buildMobileFieldWithCheckbox(),
                         if (!_whatsAppSameAsMobile) ...[
-                          _buildLabelWithEdit(
-                              'WhatsApp', _openUpdateWhatsAppSheet),
+                          _buildLabel('WhatsApp'),
                           _buildWhatsAppField(),
                         ],
                         _buildLabelWithEdit('Email', _openUpdateEmailSheet),
@@ -509,7 +514,8 @@ class _EditPersonalDetailsSheetState extends State<EditPersonalDetailsSheet>
     final lastName = lastNameController.text.trim();
     final dob = dobController.text.trim();
     final mobile = phoneController.text.trim();
-    final whatsapp = whatsappController.text.trim();
+    // ✅ If checkbox is checked, use mobile as whatsapp
+    final whatsapp = _whatsAppSameAsMobile ? mobile : whatsappController.text.trim();
     final email = emailController.text.trim();
 
     // Basic required validation
@@ -717,53 +723,78 @@ class _EditPersonalDetailsSheetState extends State<EditPersonalDetailsSheet>
           showTick: mobileValid,
           readOnly: true,
         ),
-        SizedBox(height: 4.h),
-        Row(
-          children: [
-            Transform.scale(
-              scale: 0.85,
-              child: Checkbox(
-                value: _whatsAppSameAsMobile,
-                activeColor: _accent,
-                onChanged: (val) {
-                  setState(() {
-                    _whatsAppSameAsMobile = val ?? false;
-                    if (_whatsAppSameAsMobile) {
-                      whatsappController.text =
-                          phoneController.text.trim();
-                    } else {
-                      if (whatsappController.text.trim() ==
-                          phoneController.text.trim()) {
-                        whatsappController.text = '';
+        SizedBox(height: 12.h),
+        Container(
+          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(8.r),
+            border: Border.all(color: Colors.grey.shade300),
+          ),
+          child: Row(
+            children: [
+              Transform.scale(
+                scale: 0.9,
+                child: Checkbox(
+                  value: _whatsAppSameAsMobile,
+                  activeColor: _accent,
+                  onChanged: (val) {
+                    setState(() {
+                      _whatsAppSameAsMobile = val ?? false;
+                      if (_whatsAppSameAsMobile) {
+                        // Auto-fill WhatsApp with mobile number
+                        whatsappController.text = phoneController.text.trim();
+                      } else {
+                        // Clear WhatsApp field when unchecked
+                        whatsappController.clear();
                       }
-                    }
-                  });
-                },
+                    });
+                  },
+                ),
               ),
-            ),
-            SizedBox(width: 4.w),
-            Text(
-              'WhatsApp same as mobile',
-              style: TextStyle(
-                fontSize: 12.sp,
-                color: _titleColor,
-                fontWeight: FontWeight.w500,
+              SizedBox(width: 8.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Use same number for WhatsApp',
+                      style: TextStyle(
+                        fontSize: 13.sp,
+                        color: _titleColor,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    SizedBox(height: 2.h),
+                    Text(
+                      _whatsAppSameAsMobile
+                          ? 'WhatsApp will be updated with mobile number'
+                          : 'Check to use mobile number for WhatsApp',
+                      style: TextStyle(
+                        fontSize: 11.sp,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ],
     );
   }
 
   Widget _buildWhatsAppField() {
+    final whatsappText = whatsappController.text.trim();
+    final whatsappValid = RegExp(r'^[6-9][0-9]{9}$').hasMatch(whatsappText);
     return _roundedPhoneField(
       controller: whatsappController,
       hint: 'Enter WhatsApp number',
       focusNode: _whatsappFocusNode,
       key: _whatsappKey,
-      showTick: false,
-      readOnly: true,
+      showTick: whatsappValid,
+      readOnly: false,
     );
   }
 

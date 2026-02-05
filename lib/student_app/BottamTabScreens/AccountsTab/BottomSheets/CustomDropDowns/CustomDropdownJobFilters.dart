@@ -42,6 +42,16 @@ class _CustomFieldJobFilterState extends State<CustomFieldJobFilter> {
   }
 
   @override
+  void didUpdateWidget(CustomFieldJobFilter oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.items != widget.items) {
+      setState(() {
+        _filteredItems = widget.items.toSet().toList();
+      });
+    }
+  }
+
+  @override
   void dispose() {
     _debounce?.cancel();
     _focusNode.removeListener(_handleFocusChange);
@@ -109,106 +119,93 @@ class _CustomFieldJobFilterState extends State<CustomFieldJobFilter> {
             availableSpaceAbove > availableSpaceBelow);
 
     return OverlayEntry(
-      builder: (context) => Positioned(
-        width: size.width,
-        child: Stack(
-          children: [
-            // Transparent overlay for tap-outside closing
-            GestureDetector(
-              onTap: _removeOverlay,
-              child: Container(
-                color: Colors.transparent,
-              ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setStateOverlay) => Positioned(
+          width: size.width,
+          child: CompositedTransformFollower(
+            link: _layerLink,
+            showWhenUnlinked: false,
+            offset: Offset(
+              0,
+              openAbove ? -(fixedDropdownHeight + 8) : size.height + 4,
             ),
-            CompositedTransformFollower(
-              link: _layerLink,
-              showWhenUnlinked: false,
-              offset: Offset(
-                0,
-                openAbove ? -(fixedDropdownHeight + 8) : size.height + 4,
-              ),
-              child: StatefulBuilder(
-                builder: (context, setStateOverlay) {
-                  return Material(
-                    elevation: 8,
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      width: size.width,
-                      height: fixedDropdownHeight,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey.shade300),
-                      ),
-                      child: Column(
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: TextField(
-                              controller: _searchController,
-                              focusNode: _focusNode,
-                              autofocus: false,
-                              decoration: InputDecoration(
-                                hintText: 'Search...',
-                                isDense: true,
-                                contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 10
-                                ),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide:
-                                      BorderSide(color: Colors.grey.shade400),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: const BorderSide(
-                                      color: Color(0xFF005E6A), width: 1.5),
-                                ),
-                              ),
-                              onChanged: (query) {
-                                _debounce?.cancel();
-                                _debounce =
-                                    Timer(const Duration(milliseconds: 300), () {
-                                  setStateOverlay(() {
-                                    _filteredItems = widget.items
-                                        .where((item) => item
-                                            .toLowerCase()
-                                            .contains(query.toLowerCase()))
-                                        .toList();
-                                  });
-                                });
-                              },
-                            ),
+            child: Material(
+              elevation: 8,
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                width: size.width,
+                height: fixedDropdownHeight,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: TextField(
+                        controller: _searchController,
+                        focusNode: _focusNode,
+                        autofocus: false,
+                        decoration: InputDecoration(
+                          hintText: 'Search...',
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 10),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: Colors.grey.shade400),
                           ),
-                          Expanded(
-                            child: Scrollbar(
-                              child: ListView.builder(
-                                padding: EdgeInsets.zero,
-                                itemCount: _filteredItems.length,
-                                itemBuilder: (context, index) {
-                                  final item = _filteredItems[index];
-                                  return ListTile(
-                                    dense: true,
-                                    contentPadding: const EdgeInsets.symmetric(
-                                        horizontal: 16, vertical: 4),
-                                    title: Text(item,
-                                        style: const TextStyle(fontSize: 14)),
-                                    selected: widget.value == item,
-                                    selectedTileColor: Colors.blue.shade50,
-                                    onTap: () => _selectItem(item),
-                                  );
-                                },
-                              ),
-                            ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(
+                                color: Color(0xFF005E6A), width: 1.5),
                           ),
-                        ],
+                        ),
+                        onChanged: (query) {
+                          _debounce?.cancel();
+                          _debounce =
+                              Timer(const Duration(milliseconds: 300), () {
+                            setStateOverlay(() {
+                              _filteredItems = widget.items
+                                  .where((item) => item
+                                      .toLowerCase()
+                                      .contains(query.toLowerCase()))
+                                  .toList();
+                            });
+                          });
+                        },
                       ),
                     ),
-                  );
-                },
+                    Expanded(
+                      child: Scrollbar(
+                        child: ListView.builder(
+                          padding: EdgeInsets.zero,
+                          shrinkWrap: false,
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          itemCount: _filteredItems.length,
+                          itemBuilder: (context, index) {
+                            final item = _filteredItems[index];
+                            return ListTile(
+                              dense: true,
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 4),
+                              title: Text(item,
+                                  style: const TextStyle(fontSize: 14)),
+                              selected: widget.value == item,
+                              selectedTileColor: Colors.blue.shade50,
+                              onTap: () => _selectItem(item),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -294,6 +291,20 @@ class _CustomFiledJobFilterNoSearchState
   }
 
   @override
+  void didUpdateWidget(CustomFiledJobFilterNoSearch oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.items != widget.items) {
+      setState(() {
+        _filteredItems = widget.items
+            .map((s) => s?.toString().trim() ?? '')
+            .where((s) => s.isNotEmpty)
+            .toSet()
+            .toList();
+      });
+    }
+  }
+
+  @override
   void dispose() {
     _debounce?.cancel();
     _focusNode.removeListener(_handleFocusChange);
@@ -356,109 +367,97 @@ class _CustomFiledJobFilterNoSearchState
         padding.bottom -
         keyboardHeight;
     final availableSpaceAbove = position.dy - padding.top;
-    const fixedDropdownHeight = 160.0;
+    const fixedDropdownHeight = 280.0;
     bool openAbove = availableSpaceBelow < fixedDropdownHeight &&
         availableSpaceAbove > availableSpaceBelow;
 
     return OverlayEntry(
-      builder: (context) => Positioned(
-        width: size.width,
-        child: Stack(
-          children: [
-            // Transparent overlay for tap-outside closing
-            GestureDetector(
-              onTap: _removeOverlay,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => Positioned(
+          width: size.width,
+          child: CompositedTransformFollower(
+            link: _layerLink,
+            showWhenUnlinked: false,
+            offset: Offset(
+                0, openAbove ? -(fixedDropdownHeight + 4) : size.height + 4),
+            child: Material(
+              elevation: 4,
+              borderRadius: BorderRadius.circular(12),
               child: Container(
-                color: Colors.transparent,
-              ),
-            ),
-            CompositedTransformFollower(
-              link: _layerLink,
-              showWhenUnlinked: false,
-              offset: Offset(
-                  0, openAbove ? -(fixedDropdownHeight + 4) : size.height + 4),
-              child: StatefulBuilder(
-                builder: (context, setState) {
-                  return Material(
-                    elevation: 4,
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      width: size.width,
-                      height: fixedDropdownHeight,
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey),
+                width: size.width,
+                height: fixedDropdownHeight,
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextField(
+                      controller: _searchController,
+                      focusNode: _focusNode,
+                      autofocus: false,
+                      decoration: InputDecoration(
+                        hintText: 'Search...',
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: Colors.grey.shade400),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(
+                              color: Color(0xFF005E6A), width: 1.5),
+                        ),
                       ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          TextField(
-                            controller: _searchController,
-                            focusNode: _focusNode,
-                            autofocus: false,
-                            decoration: InputDecoration(
-                              hintText: 'Search...',
-                              isDense: true,
-                              contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 10),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide:
-                                    BorderSide(color: Colors.grey.shade400),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: const BorderSide(
-                                    color: Color(0xFF005E6A), width: 1.5),
-                              ),
-                            ),
-                            onChanged: (query) {
-                              _debounce?.cancel();
-                              _debounce =
-                                  Timer(const Duration(milliseconds: 300), () {
-                                setState(() {
-                                  _filteredItems = widget.items
-                                      .where((item) => item
-                                          .toLowerCase()
-                                          .contains(query.toLowerCase()))
-                                      .toList();
-                                  _overlayEntry?.markNeedsBuild();
-                                });
-                              });
-                            },
-                          ),
-                          const SizedBox(height: 4),
-                          Expanded(
-                            child: Scrollbar(
-                              child: ListView.builder(
-                                padding: EdgeInsets.zero,
-                                itemCount: _filteredItems.length,
-                                itemBuilder: (context, index) {
-                                  final item = _filteredItems[index];
-                                  return ListTile(
-                                    contentPadding:
-                                        const EdgeInsets.symmetric(horizontal: 8),
-                                    dense: true,
-                                    title: Text(item),
-                                    onTap: () => _selectItem(item),
-                                    selected: widget.value == item,
-                                    selectedTileColor: Colors.blue.shade50,
-                                  );
-                                },
-                              ),
-                            ),
-                          ),
-                        ],
+                      onChanged: (query) {
+                        _debounce?.cancel();
+                        _debounce =
+                            Timer(const Duration(milliseconds: 300), () {
+                          setState(() {
+                            _filteredItems = widget.items
+                                .where((item) => item
+                                    .toLowerCase()
+                                    .contains(query.toLowerCase()))
+                                .toList();
+                            _overlayEntry?.markNeedsBuild();
+                          });
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 4),
+                    Expanded(
+                      child: Scrollbar(
+                        child: ListView.builder(
+                          padding: EdgeInsets.zero,
+                          shrinkWrap: false,
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          itemCount: _filteredItems.length,
+                          itemBuilder: (context, index) {
+                            final item = _filteredItems[index];
+                            return ListTile(
+                              contentPadding:
+                                  const EdgeInsets.symmetric(horizontal: 8),
+                              dense: true,
+                              title: Text(item),
+                              onTap: () => _selectItem(item),
+                              selected: widget.value == item,
+                              selectedTileColor: Colors.blue.shade50,
+                            );
+                          },
+                        ),
                       ),
                     ),
-                  );
-                },
+                  ],
+                ),
               ),
             ),
-          ],
+          ),
         ),
       ),
     );

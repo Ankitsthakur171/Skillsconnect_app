@@ -59,6 +59,29 @@ class CertificatesSection extends StatelessWidget {
     callback();
   }
 
+  String _formatDate(String dateString) {
+    try {
+      // Handle format like "2023 - 4"
+      if (dateString.contains('-')) {
+        final parts = dateString.split('-').map((s) => s.trim()).toList();
+        if (parts.length == 2) {
+          final year = parts[0];
+          final month = int.parse(parts[1]);
+          final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+          if (month > 0 && month <= 12) {
+            return '${months[month - 1]} $year';
+          }
+        }
+      }
+      // Fallback to ISO date format parsing
+      final date = DateTime.parse(dateString);
+      final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return '${months[date.month - 1]} ${date.year}';
+    } catch (e) {
+      return dateString;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     ScreenUtil.init(
@@ -190,14 +213,14 @@ class CertificatesSection extends StatelessWidget {
                 Text(
                   'Organization : ${certificatesList[i].issuedOrgName}',
                   style: TextStyle(
-                    fontSize: 13.sp,
+                   fontSize: 13.sp,
                     fontWeight: FontWeight.w500,
                     color: const Color(0xFF003840),
                   ),
                 ),
                 SizedBox(height: 3.h),
                 Text(
-                  'Issue Date : ${certificatesList[i].issueDate}',
+                  'Issue Date : ${_formatDate(certificatesList[i].issueDate)}',
                   style: TextStyle(
                     fontSize: 13.sp,
                     fontWeight: FontWeight.w500,
@@ -206,7 +229,7 @@ class CertificatesSection extends StatelessWidget {
                 ),
                 SizedBox(height: 3.h),
                 Text(
-                  'Expiry Date : ${certificatesList[i].expiryDate}',
+                  'Expiry Date : ${_formatDate(certificatesList[i].expiryDate)}',
                   style: TextStyle(
                     fontSize: 13.sp,
                     fontWeight: FontWeight.w500,

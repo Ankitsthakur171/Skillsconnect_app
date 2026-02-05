@@ -59,6 +59,9 @@ class _NotificationBellState extends State<NotificationBell> {
   Widget build(BuildContext context) {
     return BlocBuilder<NotificationBloc, NotificationState>(
       buildWhen: (previous, current) {
+        if (current.isLoading) {
+          return false;
+        }
         // Only rebuild if the unread count actually changed
         final prevUnreadCount = previous.notifications.where(_isUnread).length;
         final currUnreadCount = current.notifications.where(_isUnread).length;

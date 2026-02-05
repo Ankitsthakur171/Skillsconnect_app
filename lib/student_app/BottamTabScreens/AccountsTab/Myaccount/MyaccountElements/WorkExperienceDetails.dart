@@ -195,15 +195,15 @@ class WorkExperienceSection extends StatelessWidget {
                     ),
                   ],
                 ),
-                SizedBox(height: 4.h),
-                Text(
-                  'Project Name : ${workExperiences[i].jobTitle}',
-                  style: TextStyle(
-                    fontSize: 13.sp,
-                    fontWeight: FontWeight.w500,
-                    color: const Color(0xFF003840),
-                  ),
-                ),
+                // SizedBox(height: 4.h),
+                // Text(
+                //   'Project Name : ${workExperiences[i].jobTitle}',
+                //   style: TextStyle(
+                //     fontSize: 13.sp,
+                //     fontWeight: FontWeight.w500,
+                //     color: const Color(0xFF003840),
+                //   ),
+                // ),
                 SizedBox(height: 3.h),
                 Text(
                   'Duration : ${workExperiences[i].workFromDate} - ${workExperiences[i].workToDate}',
@@ -224,7 +224,7 @@ class WorkExperienceSection extends StatelessWidget {
                 ),
                 SizedBox(height: 3.h),
                 Text(
-                  'Exp : ${workExperiences[i].totalExperienceYears} yrs ${workExperiences[i].totalExperienceMonths} months',
+                  'Experience : ${workExperiences[i].totalExperienceYears} yrs ${workExperiences[i].totalExperienceMonths} months',
                   style: TextStyle(
                     fontSize: 13.sp,
                     fontWeight: FontWeight.w500,

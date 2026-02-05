@@ -33,6 +33,7 @@ class ApiConstantsStu {
   static const boardApi = "${subUrl}master/board/list";
   static const MediumApi = "${subUrl}master/medium/list";
   static const homeScreenApi = "${subUrl}jobs/home";
+  static const dashboardStudentApi = "${subUrl}dashboard/student";
   static const accountScreenUrl = "${subUrl}profile/student/personal-details";
   static const certificateDetailsUrl = "${subUrl}profile/student/certification-details";
   static const certificateUpdateUrl = "${subUrl}profile/student/update-certification";

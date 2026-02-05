@@ -1732,7 +1732,17 @@ class _MyAccountState extends State<MyAccount> {
               ),
               child: ClipOval(
                 child: SizedBox.expand(
-                  child: FittedBox(fit: BoxFit.cover, child: displayedImage),
+                  child: Transform.scale(
+                    scale: 1.08,
+                    child: displayedImage is Image
+                        ? Image(
+                            image: displayedImage.image,
+                            fit: BoxFit.cover,
+                            alignment: Alignment.center,
+                            filterQuality: FilterQuality.high,
+                          )
+                        : displayedImage,
+                  ),
                 ),
               ),
             ),

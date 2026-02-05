@@ -178,8 +178,9 @@ class ProjectsSection extends StatelessWidget {
                               Text(
                                 '${proj.type ?? 'N/A'} • ${proj.companyName ?? 'N/A'}',
                                 style: TextStyle(
-                                  fontSize: 12.sp,
-                                  color: const Color(0xFF6F6F6F),
+                                  fontSize: 13.sp,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF003840),
                                 ),
                               ),
                             ],
@@ -269,8 +270,9 @@ class ProjectsSection extends StatelessWidget {
                         child: Text(
                           'Duration : ${proj.duration}',
                           style: TextStyle(
-                            fontSize: 12.sp,
-                            color: const Color(0xFF6F6F6F),
+                            fontSize: 13.sp,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF003840),
                           ),
                         ),
                       ),
@@ -280,8 +282,9 @@ class ProjectsSection extends StatelessWidget {
                         child: Text(
                           'Details : ${proj.details}',
                           style: TextStyle(
-                            fontSize: 12.sp,
-                            color: const Color(0xFF6F6F6F),
+                            fontSize: 13.sp,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF003840),
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,

@@ -1001,7 +1001,7 @@ class _JobDetailPage2State extends State<JobDetailPage2> {
                         height: 70.h,
                         color: Colors.white,
                         margin: EdgeInsets.only(right: 6.w))),
-                Expanded(child: Container(height: 70.h, color: Colors.white)),
+                Expanded(child: Container(height: 70.h, color: const Color.fromARGB(255, 249, 130, 130))),
               ],
             ),
 

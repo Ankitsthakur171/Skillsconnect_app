@@ -6,6 +6,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:skillsconnect/student_app/Utilities/auth/StudentAuth.dart';
+import 'package:skillsconnect/student_app/blocpage/NotificationBloc/notification_bloc.dart';
+import 'package:skillsconnect/student_app/blocpage/NotificationBloc/notification_event.dart';
 import 'package:skillsconnect/student_app/blocpage/bloc_event.dart';
 import '../../Model/AccountScreen_Image_Name_Model.dart';
 import '../../Pages/Notification_icon_Badge.dart';
@@ -174,6 +176,7 @@ class _AccountScreenState extends State<AccountScreen> {
             context.read<ProfileBloc>().add(ResetProfileData());
             context.read<BookmarkBloc>().add(ResetBookmarksEvent());
             context.read<JobFilterBloc>().add(ResetJobFilters());
+            context.read<NotificationBloc>().add(ResetNotifications()); // ✅ Clear notifications
           }
 
           // Navigate to HR/TPO SplashScreen (unified login flow)
@@ -468,11 +471,23 @@ class _AccountScreenState extends State<AccountScreen> {
               border: Border.all(color: accent, width: 1.5.w)
           ),
           child: ClipOval(
-            child: _profileData!.userImage != null
-                ? Image.network(_profileData!.userImage!, fit: BoxFit.cover)
-                : const Image(
-                image: AssetImage('assets/placeholder.jpg'),
-                fit: BoxFit.cover
+            child: SizedBox.expand(
+              child: Transform.scale(
+                scale: 1.08,
+                child: _profileData!.userImage != null
+                    ? Image.network(
+                        _profileData!.userImage!,
+                        fit: BoxFit.cover,
+                        alignment: Alignment.center,
+                        filterQuality: FilterQuality.high,
+                      )
+                    : Image.asset(
+                        'assets/placeholder.jpg',
+                        fit: BoxFit.cover,
+                        alignment: Alignment.center,
+                        filterQuality: FilterQuality.high,
+                      ),
+              ),
             ),
           ),
         ),

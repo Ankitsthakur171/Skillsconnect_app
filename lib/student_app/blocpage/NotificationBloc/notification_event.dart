@@ -13,3 +13,5 @@ class MarkNotificationRead extends NotificationEvent {
   final int notificationId;
   MarkNotificationRead({required this.notificationId});
 }
+
+class ResetNotifications extends NotificationEvent {}

@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../Model/Dashboard_Model.dart';
 import '../../../utils/session_guard.dart';
+import '../ApiConstants.dart';
 
 class HomeScreenDashboardApi {
   static Future<DashboardData?> fetchDashboard({String? customUrl}) async {
@@ -39,7 +40,7 @@ class HomeScreenDashboardApi {
       // Build URL - dashboard endpoint is now under /mobile/ path
       final url = customUrl != null 
           ? Uri.parse(customUrl)
-          : Uri.parse('https://api.skillsconnect.in/dcxqyqzqpdydfk/mobile/dashboard/student');
+          : Uri.parse(ApiConstantsStu.dashboardStudentApi);
       print('📍 URL: $url');
 
       final response = await http

@@ -20,6 +20,8 @@ class Joblistfilters extends StatefulWidget {
 class _JoblistfiltersState extends State<Joblistfilters>
     with SingleTickerProviderStateMixin {
   late TextEditingController jobTitleController;
+  DateTime? _startDate;
+  DateTime? _endDate;
 
   String selectedJobTypeName = "Full-Time";
   String selectedCourseName = "Select Course";
@@ -48,6 +50,8 @@ class _JoblistfiltersState extends State<Joblistfilters>
     jobTitleController = TextEditingController(
       text: widget.currentFilters['jobTitle']?.toString() ?? '',
     );
+    _startDate = _parseDate(widget.currentFilters['start_date']?.toString());
+    _endDate = _parseDate(widget.currentFilters['end_date']?.toString());
 
     _fadeController = AnimationController(
       vsync: this,
@@ -91,6 +95,49 @@ class _JoblistfiltersState extends State<Joblistfilters>
       if (raw is String) return int.tryParse(raw);
     } catch (_) {}
     return null;
+  }
+
+  DateTime? _parseDate(String? raw) {
+    if (raw == null || raw.trim().isEmpty) return null;
+    return DateTime.tryParse(raw.trim());
+  }
+
+  String _formatDate(DateTime? date) {
+    if (date == null) return '';
+    final y = date.year.toString().padLeft(4, '0');
+    final m = date.month.toString().padLeft(2, '0');
+    final d = date.day.toString().padLeft(2, '0');
+    return '$y-$m-$d';
+  }
+
+  Future<void> _pickDate({required bool isStart}) async {
+    _closeAllDropdowns();
+    final initial = isStart
+        ? (_startDate ?? DateTime.now())
+        : (_endDate ?? _startDate ?? DateTime.now());
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (picked == null) return;
+
+    setState(() {
+      if (isStart) {
+        _startDate = picked;
+      } else {
+        _endDate = picked;
+      }
+
+      if (_startDate != null && _endDate != null) {
+        if (_endDate!.isBefore(_startDate!)) {
+          final temp = _startDate;
+          _startDate = _endDate;
+          _endDate = temp;
+        }
+      }
+    });
   }
 
   Future<void> _loadAllFilters() async {
@@ -214,6 +261,18 @@ class _JoblistfiltersState extends State<Joblistfilters>
         locationsData = loadedLocationsData;
         locationNames = ['All Locations', ...loadedLocationNames];
 
+        if (kDebugMode) {
+          print("JobListFilters → Loaded ${courses.length} courses");
+          print("JobListFilters → Loaded ${locationsData.length} locations");
+          print("JobListFilters → Loaded ${jobTypes.length} job types");
+          if (courses.isNotEmpty) {
+            print("JobListFilters → First course: ${courses.first}");
+          }
+          if (locationsData.isNotEmpty) {
+            print("JobListFilters → First location: ${locationsData.first}");
+          }
+        }
+
         selectedJobTypeId = initialJobTypeId;
         selectedCourseId = initialCourseId;
         selectedLocationId = initialLocationId;
@@ -271,16 +330,14 @@ class _JoblistfiltersState extends State<Joblistfilters>
         final match = jobTypes.firstWhere(
           (jt) => jt['id'] == jobTypeId,
         );
-        return match['name']?.toString() ?? 'Full-Time';
+        return match['name']?.toString() ?? 'Please Select';
       } catch (_) {}
     }
     if (storedName != null && storedName.trim().isNotEmpty) {
       return storedName;
     }
-    if (jobTypes.isNotEmpty) {
-      return jobTypes.first['name']?.toString() ?? 'Full-Time';
-    }
-    return 'Full-Time';
+    // Don't auto-select first item, show placeholder instead
+    return 'Please Select';
   }
 
   String _resolveInitialCourseName(
@@ -428,6 +485,7 @@ class _JoblistfiltersState extends State<Joblistfilters>
                           _label("Job Title"),
                           TextField(
                             controller: jobTitleController,
+                            onTap: _closeAllDropdowns,
                             decoration: InputDecoration(
                               hintText: "e.g. React Developer",
                               contentPadding: EdgeInsets.symmetric(
@@ -445,6 +503,94 @@ class _JoblistfiltersState extends State<Joblistfilters>
                                 borderRadius: BorderRadius.circular(12.r),
                               ),
                             ),
+                          ),
+                          const SizedBox(height: 20),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _label("Start Date"),
+                                    GestureDetector(
+                                      onTap: () => _pickDate(isStart: true),
+                                      child: InputDecorator(
+                                        decoration: InputDecoration(
+                                          hintText: "Select start date",
+                                          contentPadding: EdgeInsets.symmetric(
+                                            horizontal: 14.w,
+                                            vertical: 14.h,
+                                          ),
+                                          border: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(12.r),
+                                          ),
+                                          focusedBorder: OutlineInputBorder(
+                                            borderSide: const BorderSide(
+                                              color: Color(0xFF005E6A),
+                                              width: 2,
+                                            ),
+                                            borderRadius: BorderRadius.circular(12.r),
+                                          ),
+                                        ),
+                                        child: Text(
+                                          _startDate == null
+                                              ? "Select start date"
+                                              : _formatDate(_startDate),
+                                          style: TextStyle(
+                                            fontSize: 14.sp,
+                                            color: _startDate == null
+                                                ? Colors.grey.shade600
+                                                : Colors.black87,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              SizedBox(width: 12.w),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _label("End Date"),
+                                    GestureDetector(
+                                      onTap: () => _pickDate(isStart: false),
+                                      child: InputDecorator(
+                                        decoration: InputDecoration(
+                                          hintText: "Select end date",
+                                          contentPadding: EdgeInsets.symmetric(
+                                            horizontal: 14.w,
+                                            vertical: 14.h,
+                                          ),
+                                          border: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(12.r),
+                                          ),
+                                          focusedBorder: OutlineInputBorder(
+                                            borderSide: const BorderSide(
+                                              color: Color(0xFF005E6A),
+                                              width: 2,
+                                            ),
+                                            borderRadius: BorderRadius.circular(12.r),
+                                          ),
+                                        ),
+                                        child: Text(
+                                          _endDate == null
+                                              ? "Select end date"
+                                              : _formatDate(_endDate),
+                                          style: TextStyle(
+                                            fontSize: 14.sp,
+                                            color: _endDate == null
+                                                ? Colors.grey.shade600
+                                                : Colors.black87,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 20),
                           _label("Job Type"),
@@ -573,6 +719,8 @@ class _JoblistfiltersState extends State<Joblistfilters>
 
                                 final result = <String, dynamic>{
                                   'jobTitle': jobTitleController.text.trim(),
+                                  'start_date': _formatDate(_startDate),
+                                  'end_date': _formatDate(_endDate),
                                   'jobTypeId': selectedJobTypeId,
                                   'courseId': selectedCourseId,
                                   'locationId': finalLocationId,
@@ -585,9 +733,9 @@ class _JoblistfiltersState extends State<Joblistfilters>
                                       selectedLocationName == "All Locations"
                                           ? ""
                                           : selectedLocationName,
-                                  'job_type': selectedJobTypeId,
-                                  'course': selectedCourseId,
-                                  'location': finalLocationId,
+                                    'job_type': selectedJobTypeId,
+                                    'course': selectedCourseId,
+                                    'location': finalLocationId,
                                 };
 
                                 print(

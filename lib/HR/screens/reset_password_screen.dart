@@ -295,36 +295,39 @@ class ResetPasswordScreen extends StatelessWidget {
                     final errorChanged =
                         (prev.errorMessage != curr.errorMessage) &&
                             curr.errorMessage.isNotEmpty;
+                    print('🔍 LISTENWHEEN CHECK: successChanged=$successChanged, errorChanged=$errorChanged');
                     return successChanged || errorChanged;
                   },
                   listener: (context, state) async {
+                    print('🔔 ═══════════════════════════════════════════════════════════');
+                    print('🔔 LISTENER TRIGGERED ON ResetPasswordScreen');
+                    print('🔔 errorMsg="${state.errorMessage}"');
+                    print('🔔 successMsg="${state.successMessage}"');
+                    print('🔔 isLoading=${state.isLoading}');
+                    print('🔔 email="${state.email}"');
+                    print('🔔 ═══════════════════════════════════════════════════════════');
+                    
                     if (state.errorMessage.isNotEmpty) {
-                      // ScaffoldMessenger.of(context).showSnackBar(
-                      //   SnackBar(
-                      //     content: Text(state.errorMessage),
-                      //     backgroundColor: Colors.red,
-                      //   ),
-                      // );
+                      print('❌ SHOWING ERROR SNACKBAR: ${state.errorMessage}');
                       showErrorSnackBar(context,state.errorMessage);
                     }
 
                     if (state.successMessage.isNotEmpty) {
-                      // ScaffoldMessenger.of(context).showSnackBar(
-                      //   SnackBar(
-                      //     content: Text(state.successMessage),
-                      //     backgroundColor: Colors.green,
-                      //   ),
-                      // );
+                      print('✅ SHOWING SUCCESS SNACKBAR: ${state.successMessage}');
                       showSuccesSnackBar(context, state.successMessage);
 
                       // ✅ Navigate ONLY once when successMessage turns non-empty
                       final email = state.email;
+                      print('✅ SUCCESS! API accepted request');
+                      print('✅ OTP email should be sent to: $email');
+                      print('📱 NOW NAVIGATING to OTP screen...');
                       await Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (_) => EnterOtpScreen(email: email),
                         ),
                       );
+                      print('📱 Returned from OTP screen');
                       // NOTE: listenWhen ki wajah se wapas aakar typing par
                       // listener dobara trigger nahi hoga jab tak message change na ho.
                     }
@@ -408,8 +411,13 @@ class ResetPasswordScreen extends StatelessWidget {
                             onPressed: state.isLoading
                                 ? null
                                 : () {
+                              print('🔘 SUBMIT BUTTON PRESSED');
+                              print('📧 Current email in state: "${state.email}"');
+                              print('⏳ isLoading: ${state.isLoading}');
+                              
                               // ✅ Validate + API call SIRF yahin
                               if (state.email.isEmpty) {
+                                print('⚠️ Email is empty, showing error');
                                 showErrorSnackBar(context, "Email is required");
                                 return;
                               }
@@ -418,10 +426,12 @@ class ResetPasswordScreen extends StatelessWidget {
                                   r"^[\w\.\-+]+@[A-Za-z0-9\.\-]+\.[A-Za-z]{2,}$")
                                   .hasMatch(state.email);
                               if (!ok) {
+                                print('⚠️ Email validation failed for: ${state.email}');
                                 showErrorSnackBar(
                                     context, "Please enter a valid email");
                                 return;
                               }
+                              print('✅ Email validated, dispatching SubmitReset event');
                               context.read<ResetPasswordBloc>().add(SubmitReset());
                             },
                             style: ElevatedButton.styleFrom(

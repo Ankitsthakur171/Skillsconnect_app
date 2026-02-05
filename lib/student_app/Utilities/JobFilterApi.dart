@@ -11,6 +11,9 @@ class JobFilterApi {
     required int page,
     required int limit,
     String? searchQuery,
+    String? companyName,
+    String? startDate,
+    String? endDate,
     int? jobTypeId,
     int? courseId,
     int? locationId,
@@ -28,6 +31,15 @@ class JobFilterApi {
 
     if (searchQuery != null && searchQuery.trim().isNotEmpty) {
       body["job_title"] = searchQuery.trim();
+    }
+    if (companyName != null && companyName.trim().isNotEmpty) {
+      body["company_name"] = companyName.trim();
+    }
+    if (startDate != null && startDate.trim().isNotEmpty) {
+      body["start_date"] = startDate.trim();
+    }
+    if (endDate != null && endDate.trim().isNotEmpty) {
+      body["end_date"] = endDate.trim();
     }
     if (jobTypeId != null) body["job_type"] = jobTypeId;
     if (courseId != null) body["course"] = courseId;

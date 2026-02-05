@@ -36,6 +36,9 @@ class _JobScreenbtState extends State<Jobscreenbt> {
     if (f == null) return false;
     return (f['jobTitle']?.toString().trim().isNotEmpty == true ||
         f['job_title']?.toString().trim().isNotEmpty == true ||
+      f['company_name']?.toString().trim().isNotEmpty == true ||
+      f['start_date']?.toString().trim().isNotEmpty == true ||
+      f['end_date']?.toString().trim().isNotEmpty == true ||
         f['jobTypeId'] != null ||
         f['courseId'] != null ||
         f['locationId'] != null);
@@ -233,6 +236,10 @@ class _JobScreenbtState extends State<Jobscreenbt> {
     final filters = _activeFilters ?? {};
     final String? jobTitle =
         (filters['jobTitle'] ?? filters['job_title'])?.toString();
+    final String? companyName =
+      filters['company_name']?.toString();
+    final String? startDate = filters['start_date']?.toString();
+    final String? endDate = filters['end_date']?.toString();
     final int? jobTypeId = filters['jobTypeId'] as int?;
     final int? courseId = filters['courseId'] as int?;
     final int? locationId = filters['locationId'] as int?;
@@ -298,6 +305,9 @@ class _JobScreenbtState extends State<Jobscreenbt> {
         page: currentPage,
         limit: pageLimit,
         searchQuery: jobTitle,
+        companyName: companyName,
+        startDate: startDate,
+        endDate: endDate,
         jobTypeId: jobTypeId,
         courseId: courseId,
         locationId: locationId,

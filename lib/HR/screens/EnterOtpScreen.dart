@@ -320,30 +320,45 @@ class _EnterOtpScreenState extends State<EnterOtpScreen> {
           backgroundColor: const Color(0xff005E6A),
         ),
         body: BlocConsumer<EnterOtpBloc, EnterOtpState>(
+          listenWhen: (prev, curr) {
+            // ✅ Only trigger when error or success message CHANGES (prevents spam)
+            final errorChanged = (prev.errorMessage != curr.errorMessage) && curr.errorMessage.isNotEmpty;
+            final successChanged = (prev.successMessage != curr.successMessage) && curr.successMessage.isNotEmpty;
+            return errorChanged || successChanged;
+          },
           listener: (context, state) {
+            print('🔔 OTP SCREEN LISTENER: errorMsg="${state.errorMessage}", successMsg="${state.successMessage}", isLoading=${state.isLoading}, otpVerified=${state.otpVerified}');
+            
             if (state.errorMessage.isNotEmpty) {
-              // ScaffoldMessenger.of(context).showSnackBar(
-              //   SnackBar(content: Text(state.errorMessage), backgroundColor: Colors.red),
-              // );
+              print('❌ Showing error: ${state.errorMessage}');
+              showErrorSnackBar(context, state.errorMessage);
+              // ✅ Clear immediately to prevent spam
+              Future.microtask(() {
+                context.read<EnterOtpBloc>().emit(state.copyWith(errorMessage: ""));
+              });
             }
             if (state.successMessage.isNotEmpty) {
+              print('✅ Showing success: ${state.successMessage}');
               showSuccessSnackBar(context, state.successMessage);
-              // ScaffoldMessenger.of(context).showSnackBar(
-              //   SnackBar(content: Text(state.successMessage), backgroundColor: Colors.green),
-              //
-              //
-              // );
-              context.read<EnterOtpBloc>().emit(state.copyWith(successMessage: ""));
-
-              // ✅ Redirect to Login page after short delay
-              Future.delayed(const Duration(seconds: 1), () {
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (_) =>  LoginScreen()),
-                      (route) => false, // saare previous routes hata do
-                );
-              });
-
+              
+              // ✅ Only navigate to login if it's password change success, not resend OTP
+              if (state.successMessage.toLowerCase().contains('password') ||  
+                  state.successMessage.toLowerCase().contains('updated')) {
+                print('📱 Password changed successfully, navigating to Login screen in 1 second...');
+                context.read<EnterOtpBloc>().emit(state.copyWith(successMessage: ""));
+                
+                Future.delayed(const Duration(seconds: 1), () {
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (_) =>  LoginScreen()),
+                        (route) => false, // saare previous routes hata do
+                  );
+                });
+              } else {
+                // Just clear the message for resend OTP
+                print('🔄 Resend OTP success message shown, clearing it');
+                context.read<EnterOtpBloc>().emit(state.copyWith(successMessage: ""));
+              }
             }
 
           },
@@ -606,37 +621,52 @@ class _EnterOtpScreenState extends State<EnterOtpScreen> {
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: () {
+                        print('🔘 SUBMIT BUTTON PRESSED (OTP Screen)');
+                        print('📧 Email: ${widget.email}');
+                        print('🔢 OTP in state: "${state.otp}"');
+                        print('🔒 Password in state: "${state.password}"');
+                        print('✅ OTP Verified: ${state.otpVerified}');
+                        print('⏳ isLoading: ${state.isLoading}');
+                        print('🔑 Confirm Password: "$_confirmPassword"');
+                        
                         if (state.otp.isEmpty) {
+                          print('⚠️ OTP is empty');
                           showErrorSnackBar(context, "OTP is required");
                           return;
                         }
 
                         if (state.otpVerified == false) {
+                          print('❌ OTP is not verified');
                           showErrorSnackBar(context, "OTP is incorrect");
                           return;
                         }
 
                         if (state.password.isEmpty) {
+                          print('⚠️ Password is empty');
                           showErrorSnackBar(context, "Password is required");
                           return;
                         }
 
                         // ✅ Password length validation
                         if (state.password.length < 6) {
+                          print('⚠️ Password too short: ${state.password.length} chars');
                           showErrorSnackBar(context, "Password must be at least 6 characters");
                           return;
                         }
 
                         if (_confirmPassword.isEmpty) {
+                          print('⚠️ Confirm password is empty');
                           showErrorSnackBar(context, "Confirm Password is required");
                           return;
                         }
 
                         if (state.password != _confirmPassword) {
+                          print('❌ Passwords do not match: "${state.password}" vs "$_confirmPassword"');
                           showErrorSnackBar(context, "Passwords do not match");
                           return;
                         }
 
+                        print('✅ All validations passed, dispatching SubmitOtp event');
                         context.read<EnterOtpBloc>().add(SubmitOtp(widget.email));
                       },
                       style: ElevatedButton.styleFrom(

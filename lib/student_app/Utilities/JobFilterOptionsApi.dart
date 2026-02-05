@@ -17,8 +17,7 @@ class JobFilterOptionsApi {
       throw Exception("No authToken found. User not logged in?");
     }
 
-    const String endpoint = '/dcxqyqzqpdydfk/mobile/jobs';
-    final url = Uri.parse('${ApiConstantsStu.baseUrl}$endpoint');
+    final url = Uri.parse(ApiConstantsStu.jobList);
 
     print("Calling API → $url");
     print(

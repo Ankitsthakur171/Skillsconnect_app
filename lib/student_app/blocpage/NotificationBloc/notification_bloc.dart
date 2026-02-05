@@ -9,10 +9,14 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     on<LoadNotifications>(_onLoadNotifications);
     on<AddNotification>(_onAddNotification);
     on<MarkNotificationRead>(_onMarkNotificationRead);
+    on<ResetNotifications>(_onResetNotifications);
   }
 
   Future<void> _onLoadNotifications(LoadNotifications event, Emitter<NotificationState> emit) async {
-    emit(NotificationState(isLoading: true));
+    emit(NotificationState(
+      notifications: state.notifications,
+      isLoading: true,
+    ));
 
     try {
       final notifications = await NotificationsApi.getNotifications(unreadOnly: false);
@@ -43,5 +47,10 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     } catch (e) {
       // Handle error if needed
     }
+  }
+
+  void _onResetNotifications(ResetNotifications event, Emitter<NotificationState> emit) {
+    print('🔄 [NotificationBloc] Resetting notifications - clearing all data');
+    emit(NotificationState(notifications: [], isLoading: false));
   }
 }

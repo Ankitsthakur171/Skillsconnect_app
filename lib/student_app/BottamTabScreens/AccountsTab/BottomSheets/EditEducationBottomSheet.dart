@@ -179,6 +179,17 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
     courseType = data?.courseType ?? 'Full-Time';
     gradingSystem = data?.gradeName ?? 'Percentage';
 
+    // New education: do not prefill dropdowns
+    if (widget.initialData == null) {
+      degreeName = 'Please Select';
+      courseName = '';
+      specializationName = 'Please Select';
+      passingYear = 'Please Select';
+      passingMonth = 'Please Select';
+      selectedBoard = 'Please Select';
+      selectedMedium = 'Please Select';
+    }
+
     _marksFocusNode.addListener(_handleMarksFocusChange);
     _marksController.addListener(_validateMarks);
     _percentageController.addListener(_validatePercentage);
@@ -314,18 +325,32 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
             .toList();
         if (mediumList.isEmpty) mediumList = ['No Mediums Available'];
 
-        selectedBoard = (widget.initialData?.boardName != null &&
-                widget.initialData!.boardName!.isNotEmpty)
-            ? widget.initialData!.boardName
-            : (boardList.isNotEmpty ? boardList[0] : null);
-        boardId = _findIdByNameSimple(boardItems, 'board_name', selectedBoard);
+        if (widget.initialData == null) {
+          if (boardList.isNotEmpty && !boardList.contains('Please Select')) {
+            boardList.insert(0, 'Please Select');
+          }
+          if (mediumList.isNotEmpty && !mediumList.contains('Please Select')) {
+            mediumList.insert(0, 'Please Select');
+          }
+          selectedBoard = 'Please Select';
+          selectedMedium = 'Please Select';
+          boardId = null;
+          mediumId = null;
+        } else {
+          selectedBoard = (widget.initialData?.boardName != null &&
+                  widget.initialData!.boardName!.isNotEmpty)
+              ? widget.initialData!.boardName
+              : (boardList.isNotEmpty ? boardList[0] : null);
+          boardId =
+              _findIdByNameSimple(boardItems, 'board_name', selectedBoard);
 
-        selectedMedium = (widget.initialData?.mediumName != null &&
-                widget.initialData!.mediumName!.isNotEmpty)
-            ? widget.initialData!.mediumName
-            : (mediumList.isNotEmpty ? mediumList[0] : null);
-        mediumId =
-            _findIdByNameSimple(mediumItems, 'medium_name', selectedMedium);
+          selectedMedium = (widget.initialData?.mediumName != null &&
+                  widget.initialData!.mediumName!.isNotEmpty)
+              ? widget.initialData!.mediumName
+              : (mediumList.isNotEmpty ? mediumList[0] : null);
+          mediumId =
+              _findIdByNameSimple(mediumItems, 'medium_name', selectedMedium);
+        }
       });
     } catch (e, st) {
       debugPrint('Error fetching boards/mediums: $e\n$st');
@@ -365,7 +390,14 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
           degreeItems = fetched;
           degreeList =
               degreeItems.map((e) => e['degree_name'].toString()).toList();
-          if (widget.initialData?.degreeName != null &&
+          if (widget.initialData == null) {
+            if (degreeList.isNotEmpty &&
+                !degreeList.contains('Please Select')) {
+              degreeList.insert(0, 'Please Select');
+            }
+            degreeName = 'Please Select';
+            degreeId = null;
+          } else if (widget.initialData?.degreeName != null &&
               widget.initialData!.degreeName!.isNotEmpty &&
               degreeList.contains(widget.initialData!.degreeName)) {
             degreeName = widget.initialData!.degreeName!;
@@ -426,6 +458,12 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
         debugPrint("📌 collegeList.length = ${collegeList.length}");
         debugPrint("📌 collegeList = $collegeList");
 
+        // In new mode, add "Please Select" at the beginning
+        if (widget.initialData == null && collegeList.isNotEmpty) {
+          debugPrint("ℹ️ New mode: Adding 'Please Select' option");
+          collegeList.insert(0, 'Please Select');
+        }
+
         // ------------------------------------------------------
         // CASE 1 → No colleges
         // ------------------------------------------------------
@@ -477,15 +515,24 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
         }
 
         // ------------------------------------------------------
-        // CASE 3 → No old selection, just pick first item
+        // CASE 3 → No old selection
+        // If editing and original data had a college name but no match, 
+        // auto-select first. Otherwise leave blank.
         // ------------------------------------------------------
-        debugPrint("ℹ️ No previous collegeName. Auto-selecting first item.");
-
-        selectedCollegeId = collegeItems.first['id']?.toString();
-        collegeName = collegeItems.first['text'] ?? '';
-
-        debugPrint("selectedCollegeId = $selectedCollegeId");
-        debugPrint("collegeName = $collegeName");
+        if (widget.initialData != null && 
+            (widget.initialData!.collegeMasterName ?? '').isNotEmpty) {
+          debugPrint("ℹ️ Edit mode with original college but no match. Auto-selecting first item.");
+          selectedCollegeId = collegeItems.first['id']?.toString();
+          collegeName = collegeItems.first['text'] ?? '';
+          debugPrint("selectedCollegeId = $selectedCollegeId");
+          debugPrint("collegeName = $collegeName");
+        } else {
+          debugPrint("ℹ️ New mode or original data had no college. NOT auto-selecting. Leaving blank.");
+          selectedCollegeId = null;
+          collegeName = '';
+          debugPrint("selectedCollegeId = null");
+          debugPrint("collegeName = ''");
+        }
       });
 
       debugPrint("🟢 _fetchCollegeList() END -------------------------");
@@ -529,7 +576,15 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
       setState(() {
         courseItems = items;
         courseList = courseItems.map((m) => m['text'] ?? '').toList();
-        if (courseName.isEmpty ||
+        if (courseList.isEmpty) courseList = ['No Courses Available'];
+
+        if (widget.initialData == null) {
+          if (courseList.isNotEmpty && !courseList.contains('Please Select')) {
+            courseList.insert(0, 'Please Select');
+          }
+          courseName = 'Please Select';
+          selectedCourseId = null;
+        } else if (courseName.isEmpty ||
             !courseList.contains(courseName) ||
             courseList.isEmpty) {
           courseName = courseList.isNotEmpty ? courseList[0] : '';
@@ -542,7 +597,6 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
           );
           selectedCourseId = match.isNotEmpty ? match['id'] : null;
         }
-        if (courseList.isEmpty) courseList = ['No Courses Available'];
       });
     } catch (e, st) {
       debugPrint('Error in _fetchCourseList: $e\n$st');
@@ -572,9 +626,14 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
       if (!mounted) return;
       setState(() {
         specializationItems = [];
-        specializationList = ['No Specializations Available'];
+        if (widget.initialData == null) {
+          specializationList = ['Please Select'];
+          specializationName = 'Please Select';
+        } else {
+          specializationList = ['No Specializations Available'];
+          specializationName = '';
+        }
         selectedSpecializationId = null;
-        specializationName = '';
       });
       return;
     }
@@ -591,7 +650,15 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
         specializationItems = items;
         specializationList =
             specializationItems.map((m) => m['text'] ?? '').toList();
-        if (specializationName.isNotEmpty) {
+
+        if (widget.initialData == null) {
+          if (specializationList.isNotEmpty &&
+              !specializationList.contains('Please Select')) {
+            specializationList.insert(0, 'Please Select');
+          }
+          specializationName = 'Please Select';
+          selectedSpecializationId = null;
+        } else if (specializationName.isNotEmpty) {
           final match = specializationItems.firstWhere(
             (m) =>
                 (m['text'] ?? '').toLowerCase() ==
@@ -928,15 +995,20 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
     }
 
     if (!_isSchoolDegree) {
-      final bool collegeResolved = (selectedCollegeId?.isNotEmpty ?? false) ||
-          (collegeName.isNotEmpty && !collegeName.startsWith('No '));
-      final bool courseResolved =
+        final bool collegeResolved = (selectedCollegeId?.isNotEmpty ?? false) ||
+          (collegeName.isNotEmpty &&
+            !collegeName.startsWith('No ') &&
+            collegeName != 'Please Select');
+        final bool courseResolved =
           (selectedCourseId?.toString().isNotEmpty ?? false) ||
-              (courseName.isNotEmpty && !courseName.startsWith('No '));
-      final bool specResolved =
+            (courseName.isNotEmpty &&
+              !courseName.startsWith('No ') &&
+              courseName != 'Please Select');
+        final bool specResolved =
           (selectedSpecializationId?.isNotEmpty ?? false) ||
-              (specializationName.isNotEmpty &&
-                  !specializationName.startsWith('No '));
+            (specializationName.isNotEmpty &&
+              !specializationName.startsWith('No ') &&
+              specializationName != 'Please Select');
       if (!collegeResolved || !courseResolved || !specResolved) {
         _showSnackBarOnce(context,
             'Please ensure College, Course and Specialization are selected/loaded');
@@ -947,10 +1019,15 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
         return;
       }
     } else {
-      if ((selectedBoard == null || selectedBoard!.trim().isEmpty) ||
-          (selectedMedium == null || selectedMedium!.trim().isEmpty) ||
+        if ((selectedBoard == null ||
+            selectedBoard!.trim().isEmpty ||
+            selectedBoard == 'Please Select') ||
+          (selectedMedium == null ||
+            selectedMedium!.trim().isEmpty ||
+            selectedMedium == 'Please Select') ||
           _percentageController.text.trim().isEmpty ||
-          (passingYear.isEmpty)) {
+          (passingYear.isEmpty || passingYear == 'Please Select') ||
+          (passingMonth.isEmpty || passingMonth == 'Please Select')) {
         _showSnackBarOnce(
             context, 'Please fill board, medium, percentage and year');
         return;
@@ -1154,24 +1231,76 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
                                 SearchableDropdownField(
                                   key: _yearDropdownKey,
                                   value: passingYear,
-                                  items: const [
-                                    '2019',
-                                    '2020',
-                                    '2021',
-                                    '2022',
-                                    '2023',
-                                    '2024',
-                                    '2025',
-                                    '2026',
-                                    '2027',
-                                    '2028',
-                                    '2029'
-                                  ],
+                                  items: widget.initialData == null
+                                      ? const [
+                                          'Please Select',
+                                          '2019',
+                                          '2020',
+                                          '2021',
+                                          '2022',
+                                          '2023',
+                                          '2024',
+                                          '2025',
+                                          '2026',
+                                          '2027',
+                                          '2028',
+                                          '2029'
+                                        ]
+                                      : const [
+                                          '2019',
+                                          '2020',
+                                          '2021',
+                                          '2022',
+                                          '2023',
+                                          '2024',
+                                          '2025',
+                                          '2026',
+                                          '2027',
+                                          '2028',
+                                          '2029'
+                                        ],
                                   onBeforeOpen: _closeAllDropdowns,
-                                  onChanged: (val) {
-                                    setState(
-                                        () => passingYear = val ?? passingYear);
+                                  onChanged: (val) {  
+                                    setState(() => passingYear = val ?? '');
                                   },
+                                ),
+                                _buildLabel('Month of Passing'),
+                                SearchableDropdownField(
+                                  key: _monthDropdownKey,
+                                  value: passingMonth,
+                                  items: widget.initialData == null
+                                      ? const [
+                                          'Please Select',
+                                          'Jan',
+                                          'Feb',
+                                          'Mar',
+                                          'Apr',
+                                          'May',
+                                          'Jun',
+                                          'Jul',
+                                          'Aug',
+                                          'Sep',
+                                          'Oct',
+                                          'Nov',
+                                          'Dec'
+                                        ]
+                                      : const [
+                                          'Jan',
+                                          'Feb',
+                                          'Mar',
+                                          'Apr',
+                                          'May',
+                                          'Jun',
+                                          'Jul',
+                                          'Aug',
+                                          'Sep',
+                                          'Oct',
+                                          'Nov',
+                                          'Dec'
+                                        ],
+                                  onBeforeOpen: _closeAllDropdowns,
+                                  onChanged: (val) =>
+                                      setState(() => passingMonth = val ?? ''),
                                 ),
                               ] else ...[
                                 _buildLabel('College'),
@@ -1209,8 +1338,7 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
                                           'text': courseName
                                         }
                                       : null,
-                                  fetcher: (
-                                      {int page = 1, String? query}) async {
+                                  fetcher: ({int page = 1, String? query}) async {
                                     final prefs =
                                         await SharedPreferences.getInstance();
                                     final authToken =
@@ -1232,13 +1360,11 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
                                       if (item != null) {
                                         selectedCourseId = item['id'];
                                         courseName = item['text'] ?? '';
-                                        // Clear specialization when course changes
                                         selectedSpecializationId = null;
                                         specializationName = '';
                                       } else {
                                         selectedCourseId = null;
                                         courseName = '';
-                                        // Clear specialization if course is cleared
                                         selectedSpecializationId = null;
                                         specializationName = '';
                                       }

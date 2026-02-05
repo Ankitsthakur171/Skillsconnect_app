@@ -45,31 +45,58 @@ class AppliedJobCardBT extends StatelessWidget {
       return false;
     }
 
-    ScreenUtil.init(context,
-        designSize: const Size(390, 844),
-        minTextAdapt: true,
-        splitScreenMode: true);
+    ScreenUtil.init(
+      context,
+      designSize: const Size(390, 844),
+      minTextAdapt: true,
+      splitScreenMode: true,
+    );
 
     print(
         '🔍 [AppliedJobCardBT] Rendering card for job: $jobTitle, company: $company');
 
+    final filteredTags = tags.where((t) => t.trim().isNotEmpty).toList();
+    final hasTags = filteredTags.isNotEmpty;
+    final safeSalary =
+      (salary.isEmpty || salary.toLowerCase() == 'n/a') ? '' : salary;
+
+    Widget logo = Image.asset(
+      "assets/google.png",
+      width: 34.w,
+      height: 34.w,
+      fit: BoxFit.contain,
+    );
+    if (logoUrl != null && logoUrl!.isNotEmpty) {
+      logo = Image.network(
+        logoUrl!,
+        width: 45.w,
+        height: 45.w,
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) => Image.asset(
+          "assets/google.png",
+          width: 34.w,
+          height: 34.w,
+          fit: BoxFit.contain,
+        ),
+      );
+    }
+
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 6.w, vertical: 10.h),
       padding: EdgeInsets.all(8.w),
-
       decoration: BoxDecoration(
         color: const Color(0xFFEBF6F7),
         borderRadius: BorderRadius.circular(22.r),
-        border: Border.all(color: const Color(0xFFBCD8DB), width: 1.4.w),
+        border: Border.all(color: const Color(0xFFBCD8DB), width: 1.2.w),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF005E6A).withOpacity(0.04),
+            color: const Color(0xFF005E6A).withOpacity(0.06),
             blurRadius: 12,
+            spreadRadius: 1,
             offset: const Offset(0, 4),
           ),
         ],
       ),
-
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -80,7 +107,7 @@ class AppliedJobCardBT extends StatelessWidget {
               borderRadius: BorderRadius.circular(14.r),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.06),
+                  color: Colors.black.withOpacity(0.05),
                   blurRadius: 6,
                   offset: const Offset(0, 3),
                 ),
@@ -89,141 +116,192 @@ class AppliedJobCardBT extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: EdgeInsets.all(3.w),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8.r),
-                        border: Border.all(
-                            color: const Color(0xFF005E6A), width: 1.w),
-                      ),
-                      child: logoUrl != null && logoUrl!.isNotEmpty
-                          ? Image.network(
-                        logoUrl!,
-                        width: 35.w,
-                        height: 35.h,
-                        fit: BoxFit.contain,
-                        errorBuilder: (_, __, ___) => Image.asset(
-                          "assets/google.png",
-                          width: 35.w,
-                          height: 35.h,
-                        ),
-                      )
-                          : Image.asset(
-                        "assets/google.png",
-                        width: 35.w,
-                        height: 35.h,
-                      ),
+                Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Container(
+                    padding: EdgeInsets.all(4.w),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10.r),
                     ),
-
-                    SizedBox(width: 10.w),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            jobTitle,
-                            style: TextStyle(
-                              fontWeight: FontWeight.w800,
-                              fontSize: 16.sp,
-                              color: const Color(0xFF003840),
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-
-                          SizedBox(height: 3.h),
-                          Text(
-                            company,
-                            style: TextStyle(
-                              fontSize: 13.sp,
-                              color: const Color(0xFF827B7B),
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-
-                          SizedBox(height: 3.h),
-                          Text(
-                            location.isNotEmpty ? location : 'NA',
-                            style: TextStyle(
-                              fontSize: 13.sp,
-                              color: const Color(0xFF827B7B),
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
+                    child: logo,
+                  ),
+                  SizedBox(width: 8.w),
+                  Expanded(
+                    child: Text(
+                      jobTitle,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16.sp,
+                        color: const Color(0xFF003840),
+                        height: 1.2,
                       ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-
-                    SizedBox(width: 6.w),
-                    ConstrainedBox(
-                      constraints:
-                      BoxConstraints(minWidth: 44.w, maxWidth: 90.w),
-                      child: Text(
-                        isCtcPaid(salary) ? '$salary LPA' : 'Unpaid',
-                        textAlign: TextAlign.end,
+                  ),
+                  SizedBox(width: 8.w),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        isCtcPaid(safeSalary) ? '$safeSalary LPA' : 'Unpaid',
                         style: TextStyle(
                           fontSize: 15.sp,
                           color: const Color(0xFF005E6A),
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w800,
                         ),
-                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                  ],
-                ),
-
-                SizedBox(height: 12.h),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      if (jobType.trim().isNotEmpty) _jobTypeTag(jobType),
-                      SizedBox(width: 8.w),
-                      Row(
-                        children: tags
-                            .where((t) => t.trim().isNotEmpty)
-                            .map((t) => _skillTag(t))
-                            .toList(),
+                      SizedBox(height: 2.h),
+                      Text(
+                        jobType,
+                        style: TextStyle(
+                          fontSize: 11.sp,
+                          color: const Color(0xFF6F6F6F),
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ],
                   ),
+                ]),
+                SizedBox(height: 3.h),
+                Text(
+                  company,
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    color: const Color(0xFF005E6A),
+                    fontWeight: FontWeight.w700,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
+                SizedBox(height: 2.h),
+                Text(
+                  location.isNotEmpty ? location : 'No Location Specified',
+                  style: TextStyle(
+                    fontSize: 13.5.sp,
+                    color: const Color(0xFF005E6A),
+                    fontWeight: FontWeight.w600,
+                    height: 1.3,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (hasTags) ...[
+                  SizedBox(height: 8.h),
+                  Wrap(
+                    spacing: 8.w,
+                    runSpacing: 6.h,
+                    children: [
+                      ...filteredTags.take(3).map((tag) {
+                        return Container(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 10.w, vertical: 6.h),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEFF9FA),
+                            borderRadius: BorderRadius.circular(20.r),
+                            border: Border.all(
+                              color:
+                                  const Color(0xFF005E6A).withOpacity(0.25),
+                              width: 0.8,
+                            ),
+                          ),
+                          child: Text(
+                            tag,
+                            style: TextStyle(
+                              color: const Color(0xFF005E6A),
+                              fontSize: 12.sp,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                      if (filteredTags.length > 3)
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 10.w, vertical: 6.h),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF005E6A).withOpacity(0.10),
+                            borderRadius: BorderRadius.circular(20.r),
+                          ),
+                          child: Text(
+                            '+ ${filteredTags.length - 3} more',
+                            style: TextStyle(
+                              color: const Color(0xFF005E6A),
+                              fontSize: 12.sp,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ] else ...[
+                  SizedBox(height: 8.h),
+                  Text(
+                    'No tags',
+                    style: TextStyle(
+                      color: const Color(0xFF6F6F6F),
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
-
           SizedBox(height: 10.h),
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 6.w),
+            padding: EdgeInsets.symmetric(horizontal: 8.w),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Row(
-                  children: [
-                    Text(
-                      "Posted -",
-                      style: TextStyle(
-                        fontSize: 14.sp,
-                        color: const Color(0xFF003840),
-                        fontWeight: FontWeight.w600,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            "Posted - ",
+                            style: TextStyle(
+                              fontSize: 12.sp,
+                              color: const Color(0xFF6F6F6F),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          Text(
+                            postTime,
+                            style: TextStyle(
+                              fontSize: 12.sp,
+                              color: const Color(0xFF003840),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                    SizedBox(width: 4.w),
-                    Text(
-                      postTime,
-                      style: TextStyle(
-                        fontSize: 14.sp,
-                        color: const Color(0xFF003840),
-                        fontWeight: FontWeight.w600,
+                      SizedBox(height: 2.h),
+                      Row(
+                        children: [
+                          Text(
+                            "End date - ",
+                            style: TextStyle(
+                              fontSize: 12.sp,
+                              color: const Color(0xFF6F6F6F),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          Text(
+                            expiry,
+                            style: TextStyle(
+                              fontSize: 12.sp,
+                              color: const Color(0xFF003840),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),

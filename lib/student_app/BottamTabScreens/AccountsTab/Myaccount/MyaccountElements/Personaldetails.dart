@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../../Model/PersonalDetail_Model.dart';
 import 'DetailRow.dart';
 import 'SectionHeader.dart';
@@ -49,7 +50,7 @@ class PersonalDetailsSection extends StatelessWidget {
             ),
             DetailRow(icon: Icons.cake_outlined, text: personalDetail!.dateOfBirth),
             DetailRow(icon: Icons.phone_outlined, text: personalDetail!.mobile),
-            DetailRow(icon: Icons.message_outlined, text: personalDetail!.whatsAppNumber),
+            DetailRow(icon: FontAwesomeIcons.whatsapp, text: personalDetail!.whatsAppNumber),
             DetailRow(
               icon: Icons.location_on_outlined,
               text: personalDetail!.state.isEmpty

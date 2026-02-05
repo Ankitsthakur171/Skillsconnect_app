@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../Pages/Notification_icon_Badge.dart';
+import '../../../../TPO/Screens/tpo_update_passwordscreen.dart';
 import 'Contact_Us.dart';
 import 'Terms_And_Conditions.dart';
 import 'Verify_Delete_Account.dart';
@@ -273,6 +274,19 @@ class _SettingsFileState extends State<SettingsFile> {
                           content: Text('Could not open Terms & Conditions')),
                     );
                   }
+                },
+              ),
+              SizedBox(height: 16.h),
+              _settingsTile(
+                label: 'Change Password',
+                icon: Icons.lock_outline,
+                onTap: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const TpoUpdatePasswordScreen()),
+                  );
+                  if (mounted) setState(() {});
                 },
               ),
               SizedBox(height: 16.h),
