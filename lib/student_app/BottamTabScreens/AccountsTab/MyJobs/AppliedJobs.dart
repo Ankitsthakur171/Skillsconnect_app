@@ -121,8 +121,12 @@ class _AppliedJobsPageState extends State<AppliedJobsPage> {
             : ListView.builder(
           physics: const AlwaysScrollableScrollPhysics(),
           itemCount: _jobs.length,
-          padding:
-          EdgeInsets.symmetric(horizontal: 13.w, vertical: 6.5.h),
+          padding: EdgeInsets.fromLTRB(
+            13.w,
+            6.5.h,
+            13.w,
+            6.5.h + MediaQuery.of(context).padding.bottom + 16.h,
+          ),
           itemBuilder: (context, index) {
             final job = _jobs[index];
             return GestureDetector(
@@ -156,7 +160,12 @@ class _AppliedJobsPageState extends State<AppliedJobsPage> {
   Widget _buildShimmerList() {
     return ListView.builder(
       physics: const NeverScrollableScrollPhysics(),
-      padding: EdgeInsets.symmetric(horizontal: 13.w, vertical: 6.5.h),
+      padding: EdgeInsets.fromLTRB(
+        13.w,
+        6.5.h,
+        13.w,
+        6.5.h + MediaQuery.of(context).padding.bottom + 16.h,
+      ),
       itemCount: 5,
       itemBuilder: (context, index) => _buildShimmerCard(),
     );

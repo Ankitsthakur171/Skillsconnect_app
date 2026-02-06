@@ -175,14 +175,7 @@ class ProjectsSection extends StatelessWidget {
                                   color: const Color(0xFF005E6A),
                                 ),
                               ),
-                              Text(
-                                '${proj.type ?? 'N/A'} • ${proj.companyName ?? 'N/A'}',
-                                style: TextStyle(
-                                  fontSize: 13.sp,
-                    fontWeight: FontWeight.w500,
-                    color: const Color(0xFF003840),
-                                ),
-                              ),
+                              
                             ],
                           ),
                         ),
@@ -264,7 +257,19 @@ class ProjectsSection extends StatelessWidget {
                         ),
                       ],
                     ),
-                    if (proj.duration?.isNotEmpty ?? false)
+                       if (proj.type?.isNotEmpty ?? false)
+                      Padding(
+                        padding: EdgeInsets.only(top: 8.h),
+                        child: Text(
+                                '${proj.type ?? 'N/A'} • ${proj.companyName ?? 'N/A'}',
+                                style: TextStyle(
+                                  fontSize: 13.sp,
+                     fontWeight: FontWeight.w600,
+                                  color: const Color(0xFF005E6A),
+                                ),
+                              ),
+                      ),
+                     if (proj.duration?.isNotEmpty ?? false)
                       Padding(
                         padding: EdgeInsets.only(top: 8.h),
                         child: Text(
@@ -276,6 +281,7 @@ class ProjectsSection extends StatelessWidget {
                           ),
                         ),
                       ),
+                 
                     if (proj.details?.isNotEmpty ?? false)
                       Padding(
                         padding: EdgeInsets.only(top: 4.h),

@@ -198,7 +198,6 @@ class JobCardBT extends StatelessWidget {
                     ),
                   ]),
                   SizedBox(height: 3.h),
-                  // Row 2: Company
                   Text(
                     company,
                     style: TextStyle(
@@ -343,7 +342,6 @@ class JobCardBT extends StatelessWidget {
   Widget _buildApplyButton() {
     final expired = _isExpired();
     
-    // Determine button properties
     final String buttonText;
     final Gradient? gradient;
     final Color? backgroundColor;

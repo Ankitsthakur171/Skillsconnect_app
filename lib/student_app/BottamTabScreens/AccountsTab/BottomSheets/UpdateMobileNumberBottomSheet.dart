@@ -344,6 +344,7 @@ class _UpdateMobileBottomSheetState extends State<UpdateMobileBottomSheet> {
 
   Future<void> _sendStep2Otp() async {
     final newNumber = newNumberController.text.trim();
+    debugPrint('[UpdateMobile] sendStep2Otp -> newNumber=$newNumber step1Verified=$step1Verified');
     if (!_newNumberValid) {
       _showSnack('Enter valid new mobile', error: true);
       return;
@@ -400,6 +401,8 @@ class _UpdateMobileBottomSheetState extends State<UpdateMobileBottomSheet> {
     final otp = step2OtpController.text.trim();
     final newNumber = newNumberController.text.trim();
 
+    debugPrint('[UpdateMobile] submitChange -> newNumber=$newNumber otp=$otp step1Verified=$step1Verified step2OtpSent=$step2OtpSent');
+
     if (!_newNumberValid) {
       _showSnack('Enter valid new mobile', error: true);
       return;
@@ -422,6 +425,7 @@ class _UpdateMobileBottomSheetState extends State<UpdateMobileBottomSheet> {
     setState(() => _sending = true);
 
     try {
+      debugPrint('[UpdateMobile] verifyOtp(New) request -> sendthru=mb rechange=New phoneNo=$newNumber');
       final res = await AccountsMobileNumberUpdate.verifyOtp(
         mobileOtp: otp,
         sendthru: 'mb',
@@ -429,6 +433,9 @@ class _UpdateMobileBottomSheetState extends State<UpdateMobileBottomSheet> {
         phoneNo: newNumber,
       );
       debugPrint('submitChange -> $res');
+      if (res['status'] is int && res['status'] >= 400) {
+        debugPrint('submitChange error details -> status=${res['status']} body=${res['body']}');
+      }
       _handleVerifyResponse(res, onSuccess: () async {
         await _showSuccessAndClose(newNumber);
       });

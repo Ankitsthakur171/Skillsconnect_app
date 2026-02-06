@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import '../../../Constant/constants.dart';
 import '../../Calling/call_incoming_watcher.dart';
 import '../login_screen.dart';
+import '../../../utils/session_guard.dart';
               // LoginScreen
 
 class ForceLogout {
@@ -57,6 +58,9 @@ class ForceLogout {
       // Local cleanup
       await prefs.remove('pending_join');
       await prefs.clear();
+
+      // Disable global 401 guard after logout
+      SessionGuard.disable();
 
       // Stop any background listeners
       CallIncomingWatcher.stop();

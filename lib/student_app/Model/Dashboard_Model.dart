@@ -105,14 +105,25 @@ class ActiveJob {
   });
 
   factory ActiveJob.fromJson(Map<String, dynamic> json) {
+    int safeInt(dynamic v) {
+      if (v == null) return 0;
+      if (v is int) return v;
+      return int.tryParse(v.toString()) ?? 0;
+    }
+
+    String safeString(dynamic v) {
+      if (v == null) return '';
+      return v.toString();
+    }
+
     return ActiveJob(
-      company: json['company'] ?? '',
-      role: json['role'] ?? '',
-      status: json['status'] ?? '',
-      nextStep: json['nextStep'],
-      jobId: json['job_id'] ?? 0,
-      jobSlug: json['job_slug'] ?? '',
-      jobInvitationToken: json['job_invitation_token'] ?? '',
+      company: safeString(json['company']),
+      role: safeString(json['role']),
+      status: safeString(json['status']),
+      nextStep: json['nextStep']?.toString(),
+      jobId: safeInt(json['job_id']),
+      jobSlug: safeString(json['job_slug']),
+      jobInvitationToken: safeString(json['job_invitation_token']),
     );
   }
 }
@@ -123,8 +134,8 @@ class OpportunityFeedItem {
   final String company;
   final String role;
   final String location;
-  final String stipend; // e.g., "CTC ₹45"
-  final String deadline; // e.g., "2027-01-31"
+  final String stipend; 
+  final String deadline; 
   final bool eligible;
   final int jobId; // Job ID for API calls (optional - fallback to id)
   final String jobSlug; // Job slug (optional)
@@ -213,10 +224,24 @@ class ApplicationItem {
   });
 
   factory ApplicationItem.fromJson(Map<String, dynamic> json) {
+    String safeString(dynamic v) {
+      if (v == null) return '';
+      return v.toString().trim();
+    }
+
+    int safeInt(dynamic v) {
+      if (v == null) return 0;
+      if (v is int) return v;
+      return int.tryParse(v.toString()) ?? 0;
+    }
+
     // Try to get company and role from the response
     // If not available, use fallback or empty string
-    String company = json['company'] ?? '';
-    String role = json['role'] ?? json['job_title'] ?? '';
+    String company = safeString(json['company']);
+    String role = safeString(json['role']);
+    if (role.isEmpty) {
+      role = safeString(json['job_title']);
+    }
     
     // Extract from activeJob if available (preferred source)
     final activeJob = json['activeJob'] as Map<String, dynamic>?;
@@ -250,18 +275,20 @@ class ApplicationItem {
       // Convert slug like "trainee-ai-engineer-205219262" to "Trainee AI Engineer"
       role = jobSlug
           .split('-')
-          .where((word) => !word.contains(RegExp(r'^\d+$')))
+          .where((word) => word.isNotEmpty && !word.contains(RegExp(r'^\d+$')))
           .map((word) => word[0].toUpperCase() + word.substring(1))
           .join(' ');
     }
     
     return ApplicationItem(
-      id: json['id'] ?? 0,
+      id: safeInt(json['id']),
       company: company,
       role: role,
-      type: json['type'] ?? 'Job',
-      status: json['status'] ?? (activeJob?['status'] ?? '') as String,
-      updated: json['updated'] ?? '',
+      type: safeString(json['type']).isEmpty ? 'Job' : safeString(json['type']),
+      status: safeString(json['status']).isNotEmpty
+          ? safeString(json['status'])
+          : safeString(activeJob?['status']),
+      updated: safeString(json['updated']),
       jobId: jobId,
       jobSlug: jobSlug,
       jobInvitationToken: jobInvitationToken,

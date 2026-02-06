@@ -586,6 +586,7 @@ import '../../HR/Calling/call_incoming_watcher.dart';
 import 'package:http/http.dart' as http;
 import '../../HR/screens/login_screen.dart';
 import '../../utils/tpo_info_manager.dart';
+import '../../utils/session_guard.dart';
 import '../TPO_Accounts/account_bloc.dart';
 import '../TPO_Accounts/account_event.dart';
 import '../TPO_Accounts/account_state.dart';
@@ -1048,6 +1049,9 @@ class _AccountScreenState extends State<AccountScreen> {
                             try {
                               await prefs.clear();
                             } catch (_) {}
+
+                            // Disable global 401 guard after logout
+                            SessionGuard.disable();
 
                             if (Navigator.canPop(context)) {
                               Navigator.pop(context); // close loader

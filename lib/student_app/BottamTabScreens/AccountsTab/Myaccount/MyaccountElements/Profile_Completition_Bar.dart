@@ -57,7 +57,7 @@ class _ProfileCompletionBarState extends State<ProfileCompletionBar> {
       splitScreenMode: true,
     );
 
-    if (isLoading || percentage == null) {
+    if (isLoading) {
       return Shimmer.fromColors(
         baseColor: Colors.grey.shade300,
         highlightColor: Colors.grey.shade100,
@@ -67,6 +67,47 @@ class _ProfileCompletionBarState extends State<ProfileCompletionBar> {
             Container(height: 14.h, width: 160.w, color: Colors.white),
             SizedBox(height: 7.h),
             Container(height: 8.h, width: double.infinity, color: Colors.white),
+          ],
+        ),
+      );
+    }
+    if (errorMessage != null || percentage == null) {
+      return Container(
+        padding: EdgeInsets.symmetric(vertical: 10.h, horizontal: 12.w),
+        decoration: BoxDecoration(
+          color: const Color(0xFFEBF6F7),
+          borderRadius: BorderRadius.circular(10.r),
+          border: Border.all(color: Colors.grey.shade300),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Profile completion unavailable. Tap to retry.',
+                style: TextStyle(
+                  fontSize: 12.sp,
+                  color: Colors.grey.shade700,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  isLoading = true;
+                  errorMessage = null;
+                });
+                fetchProfileCompletion();
+              },
+              child: Text(
+                'Retry',
+                style: TextStyle(
+                  fontSize: 12.sp,
+                  color: const Color(0xFF005E6A),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
           ],
         ),
       );

@@ -26,7 +26,7 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
         isLoading: false,
       ));
     } catch (e) {
-      emit(NotificationState(notifications: [], isLoading: false));
+      emit(NotificationError(message: e.toString()));
     }
   }
 

@@ -31,12 +31,46 @@ class PopularJobCard extends StatelessWidget {
 
   // Helper to format CTC as LPA
   String _formatCtcAsLpa(String costToCompany) {
-    if (costToCompany.isEmpty) return salary;
+    if (costToCompany.isEmpty) return _formatSalaryFallback(salary);
     try {
       final value = double.parse(costToCompany);
+      if (value <= 0) return 'Unpaid';
       return '₹${value.toStringAsFixed(1)} LPA';
     } catch (_) {
-      return salary;
+      return _formatSalaryFallback(salary);
+    }
+  }
+
+  String _formatSalaryFallback(String raw) {
+    final s = raw.trim();
+    if (s.isEmpty) return 'Unpaid';
+    final lower = s.toLowerCase();
+    if (lower == '0' || lower == '0.0' || lower == '0.00') return 'Unpaid';
+    return s;
+  }
+
+  String _formatMonthYear(String raw) {
+    final s = raw.trim();
+    if (s.isEmpty) return '';
+    try {
+      final parsed = DateTime.parse(s);
+      const months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec'
+      ];
+      return '${months[parsed.month - 1]} ${parsed.year}';
+    } catch (_) {
+      return s;
     }
   }
 
@@ -143,7 +177,7 @@ class PopularJobCard extends StatelessWidget {
                     child: Text(
                       costToCompany.isNotEmpty 
                           ? _formatCtcAsLpa(costToCompany)
-                          : salary,
+                          : _formatSalaryFallback(salary),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
@@ -156,7 +190,7 @@ class PopularJobCard extends StatelessWidget {
                   SizedBox(width: 6.w), // Increased from 5.w (+20%)
                   Flexible(
                     child: Text(
-                      time,
+                      _formatMonthYear(time),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.right,

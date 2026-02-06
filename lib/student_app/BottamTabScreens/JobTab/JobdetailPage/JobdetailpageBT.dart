@@ -812,7 +812,7 @@ class _JobDetailPage2State extends State<JobDetailPage2> {
                                       print(
                                           "🔗 Navigating to Apply WebView → $applyUrl");
 
-                                      Navigator.push(
+                                      await Navigator.push(
                                         context,
                                         MaterialPageRoute(
                                           builder: (_) => AppWebViewScreen(
@@ -821,6 +821,9 @@ class _JobDetailPage2State extends State<JobDetailPage2> {
                                           ),
                                         ),
                                       );
+                                      if (mounted) {
+                                        await _fetchJobDetail();
+                                      }
                                     } catch (_) {
                                       _showSnackBarOnce(context,
                                           'Something went wrong while opening apply page');

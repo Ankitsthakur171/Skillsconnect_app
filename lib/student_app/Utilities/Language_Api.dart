@@ -10,6 +10,7 @@ class LanguageListApi {
   static Future<List<LanguageMasterModel>> fetchLanguages({
     int page = 1,
     int limit = 10,
+    String? search,
   }) async {
     final prefs = await SharedPreferences.getInstance();
     final authToken = prefs.getString('authToken') ?? '';
@@ -33,6 +34,10 @@ class LanguageListApi {
           'page': page,
           'limit': limit,
           'offset': offset,
+          if (search != null && search.trim().isNotEmpty) ...{
+            'search': search.trim(),
+            'language_name': search.trim(),
+          },
         }),
       );
 

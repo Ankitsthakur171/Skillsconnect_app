@@ -414,30 +414,29 @@ class _EditCertificateBottomSheetState extends State<EditCertificateBottomSheet>
       {String hintText = '', bool required = true, FocusNode? focusNode, Key? fieldKey}) {
     return Padding(
       padding: EdgeInsets.only(bottom: 10.8.h),
-      child: GestureDetector(
-        behavior: HitTestBehavior.translucent,
+      child: TextFormField(
+        key: fieldKey,
+        controller: controller,
+        focusNode: focusNode,
         onTap: () {
           _closeAllDropdowns();
-          focusNode?.requestFocus();
+          if (focusNode != null && !focusNode.hasFocus) {
+            focusNode.requestFocus();
+          }
         },
-        child: TextFormField(
-          key: fieldKey,
-          controller: controller,
-          focusNode: focusNode,
-          decoration: InputDecoration(
-            hintText: hintText,
-            hintStyle: TextStyle(fontSize: 12.4.sp),
-            border:
-                OutlineInputBorder(borderRadius: BorderRadius.circular(10.8.r)),
-            contentPadding:
-                EdgeInsets.symmetric(horizontal: 10.8.w, vertical: 7.2.h),
-          ),
-          style: TextStyle(fontSize: 12.4.sp),
-          validator: (value) =>
-              (required && (value == null || value.trim().isEmpty))
-                  ? 'Required'
-                  : null,
+        decoration: InputDecoration(
+          hintText: hintText,
+          hintStyle: TextStyle(fontSize: 12.4.sp),
+          border:
+              OutlineInputBorder(borderRadius: BorderRadius.circular(10.8.r)),
+          contentPadding:
+              EdgeInsets.symmetric(horizontal: 10.8.w, vertical: 7.2.h),
         ),
+        style: TextStyle(fontSize: 12.4.sp),
+        validator: (value) =>
+            (required && (value == null || value.trim().isEmpty))
+                ? 'Required'
+                : null,
       ),
     );
   }

@@ -97,10 +97,23 @@ class UpdatePasswordBloc extends Bloc<UpdatePasswordEvent, UpdatePasswordState> 
           .timeout(const Duration(seconds: 20));
 
       if (resp.statusCode != 200) {
+        String errorMsg = 'Failed with status ${resp.statusCode}';
+        try {
+          final body = jsonDecode(resp.body);
+          final msg = (body['msg'] ?? body['message'] ?? body['error'])?.toString();
+          if (msg != null && msg.isNotEmpty) {
+            errorMsg = msg;
+          }
+        } catch (_) {}
+
+        if (resp.statusCode == 401 && errorMsg == 'Failed with status 401') {
+          errorMsg = 'Current password is incorrect';
+        }
+
         emit(state.copyWith(
           isSubmitting: false,
           isFailure: true,
-          errorMessage: 'Failed with status ${resp.statusCode}',
+          errorMessage: errorMsg,
         ));
         return;
       }

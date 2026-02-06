@@ -9,6 +9,7 @@ class CustomFieldLanguageDropdown<T> extends StatefulWidget {
   final String hintText;
   final ScrollController? scrollController;
   final VoidCallback? onLoadMore;
+  final ValueChanged<String>? onSearch;
 
   const CustomFieldLanguageDropdown(
       this.items,
@@ -18,6 +19,7 @@ class CustomFieldLanguageDropdown<T> extends StatefulWidget {
         this.hintText = 'Please select',
         this.scrollController,
         this.onLoadMore,
+        this.onSearch,
       });
 
   @override
@@ -60,7 +62,7 @@ class _CustomFieldLanguageDropdownState<T>
   void didUpdateWidget(CustomFieldLanguageDropdown<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
     // Update filtered items when widget items change (pagination)
-    if (_lastItemsCount != widget.items.length) {
+    if (_lastItemsCount != widget.items.length || oldWidget.items != widget.items) {
       print('✏️ [CustomDropDownLanguage] didUpdateWidget: Items ${_lastItemsCount} → ${widget.items.length}');
       _filteredItems = widget.items.whereType<T>().toSet().toList();
       _lastItemsCount = widget.items.length;
@@ -107,6 +109,7 @@ class _CustomFieldLanguageDropdownState<T>
     if (_overlayEntry == null && _filteredItems.isNotEmpty) {
       _filteredItems = widget.items.whereType<T>().toSet().toList();
       _searchController.clear();
+      widget.onSearch?.call('');
       _overlayEntry = _createOverlayEntry();
       Overlay.of(context)?.insert(_overlayEntry!);
       _focusNode.requestFocus();
@@ -214,10 +217,16 @@ class _CustomFieldLanguageDropdownState<T>
                                 onChanged: (query) {
                                   if (_debounce?.isActive ?? false) _debounce?.cancel();
                                   _debounce = Timer(const Duration(milliseconds: 300), () {
+                                    if (widget.onSearch != null) {
+                                      widget.onSearch?.call(query);
+                                      return;
+                                    }
                                     setState(() {
                                       _filteredItems = widget.items
                                           .whereType<T>()
-                                          .where((item) => _getDisplayText(item).toLowerCase().contains(query.toLowerCase()))
+                                          .where((item) => _getDisplayText(item)
+                                          .toLowerCase()
+                                          .contains(query.toLowerCase()))
                                           .toSet()
                                           .toList();
                                     });

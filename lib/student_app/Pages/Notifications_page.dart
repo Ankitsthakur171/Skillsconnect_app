@@ -342,6 +342,7 @@ class _NotificationsScreenState extends State<NotificationsScreensd> {
                   onTap: link.isEmpty
                       ? null
                       : () {
+                          _markAsRead(item);
                           print("Tapped link: $link");
                           _handleLinkNavigation(link);
                         },

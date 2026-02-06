@@ -98,7 +98,7 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
   final List<String> courseTypeList = [
     'Full-Time',
     'Part-Time',
-    'Corresponding/Distance',
+    'Correspondences',
   ];
 
   final List<String> gradingSystemList = [

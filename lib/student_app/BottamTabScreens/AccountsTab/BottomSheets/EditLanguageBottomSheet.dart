@@ -31,6 +31,7 @@ class _LanguageBottomSheetState extends State<LanguageBottomSheet>
   int _currentPage = 1;
   bool _hasMoreData = true;
   static const int _pageSize = 10;
+  String _languageSearchQuery = '';
 
   List<LanguageMasterModel> masterLanguages = [];
   LanguageMasterModel? selectedLanguage;
@@ -142,6 +143,7 @@ class _LanguageBottomSheetState extends State<LanguageBottomSheet>
       final languagesFromApi = await LanguageListApi.fetchLanguages(
         page: _currentPage,
         limit: _pageSize,
+        search: _languageSearchQuery,
       );
       print('✅ [LanguageBottomSheet] API returned ${languagesFromApi.length} languages');
       for (var i = 0; i < languagesFromApi.length; i++) {
@@ -208,6 +210,7 @@ class _LanguageBottomSheetState extends State<LanguageBottomSheet>
       final languagesFromApi = await LanguageListApi.fetchLanguages(
         page: _currentPage,
         limit: _pageSize,
+        search: _languageSearchQuery,
       );
       print('✅ [LanguageBottomSheet] API returned ${languagesFromApi.length} languages for page $_currentPage');
       for (var i = 0; i < languagesFromApi.length; i++) {
@@ -239,6 +242,41 @@ class _LanguageBottomSheetState extends State<LanguageBottomSheet>
       print('🔄 [LanguageBottomSheet] ====== LOAD MORE FAILED ======\n');
       if (!mounted) return;
       setState(() => _loadingMore = false);
+    }
+  }
+
+  Future<void> _searchLanguages(String query) async {
+    final nextQuery = query.trim();
+    if (_languageSearchQuery == nextQuery && masterLanguages.isNotEmpty) return;
+
+    setState(() {
+      _languageSearchQuery = nextQuery;
+      _currentPage = 1;
+      _hasMoreData = true;
+      _loadingMore = false;
+      masterLanguages = [];
+    });
+
+    if (_languageScrollController.hasClients) {
+      _languageScrollController.jumpTo(0);
+    }
+
+    try {
+      final languagesFromApi = await LanguageListApi.fetchLanguages(
+        page: _currentPage,
+        limit: _pageSize,
+        search: _languageSearchQuery,
+      );
+
+      if (!mounted) return;
+      setState(() {
+        masterLanguages = languagesFromApi;
+        _hasMoreData = languagesFromApi.length >= _pageSize;
+      });
+    } catch (e) {
+      print('❌ [LanguageBottomSheet] Error searching languages: $e');
+      if (!mounted) return;
+      _showSnackBarOnce("Failed to search languages");
     }
   }
 
@@ -372,6 +410,7 @@ class _LanguageBottomSheetState extends State<LanguageBottomSheet>
       hintText: "Select language",
       scrollController: _languageScrollController,
       onLoadMore: _loadMoreLanguages,
+      onSearch: _searchLanguages,
     );
   }
 

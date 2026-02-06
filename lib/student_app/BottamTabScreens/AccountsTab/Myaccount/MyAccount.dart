@@ -79,6 +79,7 @@ class _MyAccountState extends State<MyAccount> {
   bool _hasInternet = true;
   bool _isRetrying = false;
   bool _showShimmer = true;
+  bool _loadFailed = false;
 
   @override
   void initState() {
@@ -120,6 +121,7 @@ class _MyAccountState extends State<MyAccount> {
     setState(() {
       _isRetrying = true;
       _showShimmer = true;
+      _loadFailed = false;
     });
 
     final connected = await _hasInternetConnection();
@@ -170,6 +172,94 @@ class _MyAccountState extends State<MyAccount> {
     }
   }
 
+  int _basicEducationPriority(String? degreeName) {
+    final name = (degreeName ?? '').toLowerCase().trim();
+    if (name.isEmpty) return 999;
+
+    final isX = RegExp(r'\bx\b').hasMatch(name);
+    if (isX || name.contains('10th') || name.contains('class 10') || name.contains('class x') || name.contains('10 ')) {
+      return 0; // Class X first
+    }
+
+    if (name.contains('xii') || name.contains('12th') || name.contains('class 12') || name.contains('class xii') || name.contains('12 ')) {
+      return 1; // Class XII second
+    }
+    return 999;
+  }
+
+  int _higherEducationPriority(String? degreeName) {
+    final name = (degreeName ?? '').toLowerCase().trim();
+    if (name.isEmpty) return 999;
+
+    if (name.contains('doctorate') || name.contains('doctoral') || name.contains('phd')) {
+      return 0; // Doctorate first
+    }
+
+    final isPostGrad = name.contains('post graduate') || name.contains('postgraduate') || name.contains('pg') || name.contains('master') || name.contains('m.tech') || name.contains('mtech') || name.contains('m.e') || name.contains('me') || name.contains('msc') || name.contains('ma') || name.contains('mcom') || name.contains('mba');
+    if (isPostGrad) {
+      return 1; // Postgraduate second
+    }
+
+    if ((name.contains('graduate') || name.contains('graduation')) &&
+        !name.contains('undergraduate') &&
+        !name.contains('under graduate') &&
+        !name.contains('undergrad')) {
+      return 2; // Graduate third
+    }
+
+    if (name.contains('undergraduate') || name.contains('under graduate') || name.contains('undergrad') || name.contains('ug') || name.contains('bachelor') || name.contains('b.tech') || name.contains('btech') || name.contains('b.e') || name.contains('be') || name.contains('bsc') || name.contains('ba') || name.contains('bcom')) {
+      return 3; // Undergraduate fourth
+    }
+
+    return 999;
+  }
+
+  int _compareEducation(EducationDetailModel a, EducationDetailModel b) {
+    final aPriority = _higherEducationPriority(a.degreeName);
+    final bPriority = _higherEducationPriority(b.degreeName);
+    if (aPriority != bPriority) {
+      return aPriority.compareTo(bPriority);
+    }
+    final aId = a.educationId ?? 0;
+    final bId = b.educationId ?? 0;
+    return bId.compareTo(aId);
+  }
+
+  int _compareBasicEducation(BasicEducationModel a, BasicEducationModel b) {
+    final aPriority = _basicEducationPriority(a.degreeName);
+    final bPriority = _basicEducationPriority(b.degreeName);
+    if (aPriority != bPriority) {
+      return aPriority.compareTo(bPriority);
+    }
+    final aId = a.basicEducationId ?? 0;
+    final bId = b.basicEducationId ?? 0;
+    return bId.compareTo(aId);
+  }
+
+  void _insertEducationByLevel(EducationDetailModel ed) {
+    final index = educationDetails.indexWhere((item) {
+      return _compareEducation(ed, item) < 0;
+    });
+
+    if (index == -1) {
+      educationDetails.add(ed);
+    } else {
+      educationDetails.insert(index, ed);
+    }
+  }
+
+  void _insertBasicEducationByLevel(BasicEducationModel ed) {
+    final index = basicEducationDetails.indexWhere((item) {
+      return _compareBasicEducation(ed, item) < 0;
+    });
+
+    if (index == -1) {
+      basicEducationDetails.add(ed);
+    } else {
+      basicEducationDetails.insert(index, ed);
+    }
+  }
+
   Future<void> fetchEducationDetails() async {
     final prefs = await SharedPreferences.getInstance();
     final authToken = prefs.getString('authToken') ?? '';
@@ -177,7 +267,6 @@ class _MyAccountState extends State<MyAccount> {
 
     setState(() {
       isLoadingEducation = true;
-      _showShimmer = true;
     });
 
     try {
@@ -483,6 +572,9 @@ class _MyAccountState extends State<MyAccount> {
         } catch (_) {}
       }
 
+      higher.sort(_compareEducation);
+      basicModels.sort(_compareBasicEducation);
+
       if (!mounted) return;
       setState(() {
         educationDetails = higher;
@@ -498,6 +590,7 @@ class _MyAccountState extends State<MyAccount> {
       setState(() {
         isLoadingEducation = false;
         _showShimmer = false;
+        _loadFailed = true;
       });
     }
   }
@@ -703,6 +796,7 @@ class _MyAccountState extends State<MyAccount> {
       if (mounted) {
         setState(() {
           isLoadingProject = false;
+          _loadFailed = true;
         });
         print("❌ Error fetching project details: $e");
       }
@@ -731,6 +825,7 @@ class _MyAccountState extends State<MyAccount> {
       print('❌ Personal details fetch error: $e');
       setState(() {
         isLoadingPersonalDetail = false;
+        _loadFailed = true;
       });
     }
   }
@@ -756,6 +851,7 @@ class _MyAccountState extends State<MyAccount> {
       print("❌ Error fetching work experience: $e");
       setState(() {
         isLoadingWorkExperience = false;
+        _loadFailed = true;
       });
     }
   }
@@ -781,6 +877,7 @@ class _MyAccountState extends State<MyAccount> {
       print('❌ Error fetching certificates: $e');
       setState(() {
         isLoadingCertificate = false;
+        _loadFailed = true;
       });
     }
   }
@@ -803,6 +900,12 @@ class _MyAccountState extends State<MyAccount> {
       });
     } catch (e) {
       print(' Error fetching skills: $e');
+      if (mounted) {
+        setState(() {
+          isLoadingSkills = false;
+          _loadFailed = true;
+        });
+      }
     }
   }
 
@@ -810,14 +913,24 @@ class _MyAccountState extends State<MyAccount> {
     final prefs = await SharedPreferences.getInstance();
     final authToken = prefs.getString('authToken') ?? '';
     final connectSid = prefs.getString('connectSid') ?? '';
-    final fetchedLanguages = await LanguageDetailApi.fetchLanguages(
-      authToken: authToken,
-      connectSid: connectSid,
-    );
-    setState(() {
-      languageList = fetchedLanguages;
-      isLoadingLanguages = false;
-    });
+    try {
+      final fetchedLanguages = await LanguageDetailApi.fetchLanguages(
+        authToken: authToken,
+        connectSid: connectSid,
+      );
+      setState(() {
+        languageList = fetchedLanguages;
+        isLoadingLanguages = false;
+      });
+    } catch (e) {
+      print('❌ Error fetching languages: $e');
+      if (mounted) {
+        setState(() {
+          isLoadingLanguages = false;
+          _loadFailed = true;
+        });
+      }
+    }
   }
 
   Future<void> _pickImage(ImageSource source) async {
@@ -1010,59 +1123,61 @@ class _MyAccountState extends State<MyAccount> {
     return Scaffold(
       appBar: const AccountAppBar(),
       backgroundColor: Colors.white,
-      body: _isRetrying
+      body: _isRetrying || _showShimmer
           ? _buildShimmerLoading()
           : !_hasInternet
-          ? NoInternetPage(onRetry: _checkInternetAndFetch)
-          : Builder(
-              builder: (innerContext) => SafeArea(
-                child: RefreshIndicator(
-                  onRefresh: _checkInternetAndFetch,
-                  child: SingleChildScrollView(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 14.w,
-                      vertical: 17.h,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        _buildProfileHeader(),
-                        SizedBox(height: 22.h),
-                        const ProfileCompletionBar(),
-                        SizedBox(height: 22.h),
-                        PersonalDetailsSection(
-                          personalDetail: personalDetail,
-                          isLoading: isLoadingPersonalDetail || _showShimmer,
-                          onEdit: () {
-                            showModalBottomSheet(
-                              context: innerContext,
-                              isScrollControlled: true,
-                              backgroundColor: Colors.white,
-                              builder: (_) => EditPersonalDetailsSheet(
-                                initialData: personalDetail,
-                                onSave: (updatedData) {
-                                  setState(() {
-                                    personalDetail = updatedData;
-                                  });
-                                },
-                              ),
-                            );
-                          },
-                        ),
-                        SizedBox(height: 17.h),
-                        EducationSection(
-                          educationDetails: educationDetails,
-                          basicEducationDetails: basicEducationDetails,
-                          isLoading: isLoadingEducation || _showShimmer,
-                          onAdd: () {
-                            final existingDegrees = <String>[
-                              ...educationDetails
-                                  .map((e) => (e.degreeName ?? '').trim())
-                                  .where((s) => s.isNotEmpty),
-                              ...basicEducationDetails
-                                  .map((b) => (b.degreeName ?? '').trim())
-                                  .where((s) => s.isNotEmpty),
-                            ];
+              ? NoInternetPage(onRetry: _checkInternetAndFetch)
+              : _loadFailed
+                  ? _buildLoadError()
+                  : Builder(
+                      builder: (innerContext) => SafeArea(
+                        child: RefreshIndicator(
+                          onRefresh: _checkInternetAndFetch,
+                          child: SingleChildScrollView(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 14.w,
+                              vertical: 17.h,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                _buildProfileHeader(),
+                                SizedBox(height: 22.h),
+                                const ProfileCompletionBar(),
+                                SizedBox(height: 22.h),
+                                PersonalDetailsSection(
+                                  personalDetail: personalDetail,
+                                  isLoading: isLoadingPersonalDetail || _showShimmer,
+                                  onEdit: () {
+                                    showModalBottomSheet(
+                                      context: innerContext,
+                                      isScrollControlled: true,
+                                      backgroundColor: Colors.white,
+                                      builder: (_) => EditPersonalDetailsSheet(
+                                        initialData: personalDetail,
+                                        onSave: (updatedData) {
+                                          setState(() {
+                                            personalDetail = updatedData;
+                                          });
+                                        },
+                                      ),
+                                    );
+                                  },
+                                ),
+                                SizedBox(height: 17.h),
+                                EducationSection(
+                                  educationDetails: educationDetails,
+                                  basicEducationDetails: basicEducationDetails,
+                                  isLoading: isLoadingEducation || _showShimmer,
+                                  onAdd: () {
+                                    final existingDegrees = <String>[
+                                      ...educationDetails
+                                          .map((e) => (e.degreeName ?? '').trim())
+                                          .where((s) => s.isNotEmpty),
+                                      ...basicEducationDetails
+                                          .map((b) => (b.degreeName ?? '').trim())
+                                          .where((s) => s.isNotEmpty),
+                                    ];
 
                             showModalBottomSheet(
                               context: innerContext,
@@ -1080,14 +1195,12 @@ class _MyAccountState extends State<MyAccount> {
                                     final basic = _mapPayloadToBasicEducation(
                                       data,
                                     );
-                                    setState(
-                                      () => basicEducationDetails.add(basic),
-                                    );
+                                    setState(() => _insertBasicEducationByLevel(basic));
                                   } else {
                                     final ed = _mapPayloadToEducationDetail(
                                       data,
                                     );
-                                    setState(() => educationDetails.add(ed));
+                                    setState(() => _insertEducationByLevel(ed));
                                   }
                                   Navigator.pop(innerContext);
                                 },
@@ -1820,6 +1933,60 @@ class _MyAccountState extends State<MyAccount> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildLoadError() {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 24.w),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 48.sp,
+              color: Colors.red.shade400,
+            ),
+            SizedBox(height: 12.h),
+            Text(
+              'Unable to load account data',
+              style: TextStyle(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF003840),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 6.h),
+            Text(
+              'Please try again or pull to refresh.',
+              style: TextStyle(
+                fontSize: 13.sp,
+                color: Colors.grey.shade600,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 16.h),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _checkInternetAndFetch,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Try Again'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF005E6A),
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(vertical: 12.h),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

@@ -151,7 +151,11 @@ class _GuardedHttpClientRequest implements HttpClientRequest {
   @override
   Future<HttpClientResponse> close() async {
     final res = await _r.close();
-    unawaited(SessionGuard.scan(statusCode: res.statusCode));
+        final path = _r.uri.path.toLowerCase();
+        final isChangePasswordLogged = path.contains('change-password-logged');
+        if (!isChangePasswordLogged) {
+            unawaited(SessionGuard.scan(statusCode: res.statusCode));
+        }
     return res;
   }
 

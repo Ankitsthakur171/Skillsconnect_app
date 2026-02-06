@@ -126,6 +126,10 @@ class _UpdatePasswordScreenState extends State<UpdatePasswordScreen> {
           centerTitle: true,
         ),
         body: BlocConsumer<UpdatePasswordBloc, UpdatePasswordState>(
+          listenWhen: (previous, current) {
+            return previous.isSuccess != current.isSuccess ||
+                previous.isFailure != current.isFailure;
+          },
           listener: (context, state) {
             if (state.isSuccess) {
               showErrorSnackBarGreen(context, "Password updated successfully");

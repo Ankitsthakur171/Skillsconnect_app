@@ -64,15 +64,40 @@ class _HomeScreen2State extends State<HomeScreen2> {
   @override
   void initState() {
     super.initState();
-    // Ensure SessionGuard is enabled for student app
-    print('🎯 [HomeScreen2] initState - ensuring SessionGuard is enabled');
-    SessionGuard.enable();
-    _checkInternetAndFetch();
-    _fetchDashboardData();
+    Future.microtask(() async {
+      final hasAuth = await _initSessionGuard();
+      if (!mounted) return;
+      if (hasAuth) {
+        _checkInternetAndFetch();
+        _fetchDashboardData();
+      } else {
+        setState(() {
+          _isLoadingBanners = false;
+          _isLoadingFeatured = false;
+          _isLoadingPopular = false;
+          _isLoadingDashboard = false;
+        });
+      }
+    });
     Future.delayed(const Duration(seconds: 1), () {
       if (!mounted) return;
       setState(() => _showShimmer = false);
     });
+  }
+
+  Future<bool> _initSessionGuard() async {
+    final prefs = await SharedPreferences.getInstance();
+    final authToken = prefs.getString('authToken') ?? '';
+
+    if (authToken.isNotEmpty) {
+      print('🎯 [HomeScreen2] SessionGuard enabled (auth present)');
+      SessionGuard.enable();
+      return true;
+    }
+
+    print('🎯 [HomeScreen2] SessionGuard disabled (no auth)');
+    SessionGuard.disable();
+    return false;
   }
 
   Future<void> _checkInternetAndFetch() async {
@@ -110,6 +135,16 @@ class _HomeScreen2State extends State<HomeScreen2> {
 
   Future<void> _fetchDashboardData() async {
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final authToken = prefs.getString('authToken') ?? '';
+      if (authToken.isEmpty) {
+        if (mounted) {
+          setState(() {
+            _isLoadingDashboard = false;
+          });
+        }
+        return;
+      }
       print('📊 [HomeScreen2] Fetching dashboard data...');
       final data = await HomeScreenDashboardApi.fetchDashboard();
       
@@ -147,6 +182,15 @@ class _HomeScreen2State extends State<HomeScreen2> {
     final prefs = await SharedPreferences.getInstance();
     final authToken = prefs.getString('authToken') ?? '';
     final connectSid = prefs.getString('connectSid') ?? '';
+    if (authToken.isEmpty) {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingBanners = false;
+        _isLoadingFeatured = false;
+        _isLoadingPopular = false;
+      });
+      return;
+    }
     try {
       var url = Uri.parse(ApiConstantsStu.homeScreenApi);
       var headers = {
