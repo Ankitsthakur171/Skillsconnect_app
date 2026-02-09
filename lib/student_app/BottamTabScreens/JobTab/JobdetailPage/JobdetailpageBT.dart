@@ -1451,6 +1451,17 @@ class _JobDetailPage2State extends State<JobDetailPage2> {
     final otherIncentivesRaw = job['other_incentives']?.toString() ?? '';
     final probationDuration = job['probation_duration']?.toString() ?? '';
     final joiningDateRaw = job['joining_date']?.toString() ?? '';
+    bool isJoinDateMissing(String value) {
+      final s = value.trim().toLowerCase();
+      if (s.isEmpty || s == 'na' || s == 'n/a') return true;
+      if (s.contains('not disclosed') || s.contains('not available')) {
+        return true;
+      }
+      if (s.contains('id not available') || s.contains('id not avalable')) {
+        return true;
+      }
+      return false;
+    }
     bool isCtcPaid() {
       final digits = RegExp(r'\d+')
           .allMatches(ctcRaw)
@@ -1545,9 +1556,9 @@ class _JobDetailPage2State extends State<JobDetailPage2> {
             SizedBox(width: 10.w),
             unifiedInfoTool(
               'Expected joining date',
-              joiningDateRaw.isNotEmpty
+              !isJoinDateMissing(joiningDateRaw)
                   ? _formatJoiningDate(joiningDateRaw)
-                  : 'N/A',
+              : 'Not disclosed',
             ),
           ],
         ),
@@ -1927,7 +1938,7 @@ class _JobDetailPage2State extends State<JobDetailPage2> {
       height: 64.h,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        itemCount: process.length,
+        itemCount: process.length,  
         separatorBuilder: (_, __) => Container(
           width: 32.w,
           alignment: Alignment.center,

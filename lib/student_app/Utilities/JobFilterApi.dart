@@ -12,6 +12,7 @@ class JobFilterApi {
     required int limit,
     String? searchQuery,
     String? companyName,
+    String? postedOn,
     String? startDate,
     String? endDate,
     int? jobTypeId,
@@ -35,7 +36,9 @@ class JobFilterApi {
     if (companyName != null && companyName.trim().isNotEmpty) {
       body["company_name"] = companyName.trim();
     }
-    if (startDate != null && startDate.trim().isNotEmpty) {
+    if (postedOn != null && postedOn.trim().isNotEmpty) {
+      body["posted_on"] = postedOn.trim();
+    } else if (startDate != null && startDate.trim().isNotEmpty) {
       body["start_date"] = startDate.trim();
     }
     if (endDate != null && endDate.trim().isNotEmpty) {

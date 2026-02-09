@@ -12,6 +12,7 @@ class JobModelsd {
   final String postTime;
   final String expiry;
   final String? endDate;  // end_date from API for calculating days left
+  final String? applyType;
   final List<String> tags;
   final String? logoUrl;
   final int recordId;
@@ -35,6 +36,7 @@ class JobModelsd {
     required this.slug,
     this.applyUrl,
     this.endDate,
+    this.applyType,
   });
 
   @override
@@ -60,7 +62,7 @@ class JobModelsd {
       company: json['company_name'] ?? json['company'] ?? 'Company N/A',
       location: json['three_cities_name'] ?? json['location'] ?? 'Location N/A',
       salary: json['cost_to_company']?.toString() ?? json['salary'] ?? 'N/A',
-      postTime: json['created_on'] ?? json['postTime'] ?? 'N/A',
+      postTime: json['posted_on'] ?? json['created_on'] ?? json['postTime'] ?? 'N/A',
       expiry: json['expiry'] ?? 'N/A',
       tags: (json['skills'] != null && json['skills'] is String)
           ? (json['skills'] as String).split(',').map((e) => e.trim()).toList()
@@ -71,8 +73,11 @@ class JobModelsd {
       slug: (json['job_slug'] as String?) ?? '',
       applyUrl: json['applyUrl'] as String?,
       endDate: endDate,
+      applyType: json['apply_type']?.toString() ?? json['applyType']?.toString(),
     );
   }
+
+  bool get isApplied => (applyType ?? '').toLowerCase() == 'applied';
 
   /// Get formatted end date in "dd MMM yyyy" format, or "Expired" if already passed
   String getTimeLeft() {

@@ -36,9 +36,10 @@ class _JobScreenbtState extends State<Jobscreenbt> {
     if (f == null) return false;
     return (f['jobTitle']?.toString().trim().isNotEmpty == true ||
         f['job_title']?.toString().trim().isNotEmpty == true ||
-      f['company_name']?.toString().trim().isNotEmpty == true ||
-      f['start_date']?.toString().trim().isNotEmpty == true ||
-      f['end_date']?.toString().trim().isNotEmpty == true ||
+        f['company_name']?.toString().trim().isNotEmpty == true ||
+        f['posted_on']?.toString().trim().isNotEmpty == true ||
+        f['start_date']?.toString().trim().isNotEmpty == true ||
+        f['end_date']?.toString().trim().isNotEmpty == true ||
         f['jobTypeId'] != null ||
         f['courseId'] != null ||
         f['locationId'] != null);
@@ -62,6 +63,13 @@ class _JobScreenbtState extends State<Jobscreenbt> {
   String _query = '';
 
   bool get _isSearching => _query.trim().isNotEmpty;
+
+  bool _matchesQuery(String? value, String query) {
+    final q = query.trim().toLowerCase();
+    if (q.isEmpty) return true;
+    if (value == null) return false;
+    return value.toString().toLowerCase().contains(q);
+  }
 
   @override
   void initState() {
@@ -235,10 +243,10 @@ class _JobScreenbtState extends State<Jobscreenbt> {
 
     final filters = _activeFilters ?? {};
     final String? jobTitle =
-        (filters['jobTitle'] ?? filters['job_title'])?.toString();
-    final String? companyName =
-      filters['company_name']?.toString();
-    final String? startDate = filters['start_date']?.toString();
+      (filters['jobTitle'] ?? filters['job_title'])?.toString();
+    final String? companyName = filters['company_name']?.toString();
+    final String? startDate =
+      (filters['posted_on'] ?? filters['start_date'])?.toString();
     final String? endDate = filters['end_date']?.toString();
     final int? jobTypeId = filters['jobTypeId'] as int?;
     final int? courseId = filters['courseId'] as int?;
@@ -306,6 +314,7 @@ class _JobScreenbtState extends State<Jobscreenbt> {
         limit: pageLimit,
         searchQuery: jobTitle,
         companyName: companyName,
+        postedOn: startDate,
         startDate: startDate,
         endDate: endDate,
         jobTypeId: jobTypeId,
@@ -315,7 +324,17 @@ class _JobScreenbtState extends State<Jobscreenbt> {
 
       if (!mounted) return;
 
-      final mapped = <JobModelsd>[];
+        final mapped = <JobModelsd>[];
+        final DateTime? startFilterDate = parseDateFlexible(startDate);
+        final DateTime? endFilterDate = parseDateFlexible(endDate);
+        final DateTime? startDateOnly = startFilterDate == null
+          ? null
+          : DateTime(startFilterDate.year, startFilterDate.month, startFilterDate.day);
+        final DateTime? endDateOnly = endFilterDate == null
+          ? null
+          : DateTime(endFilterDate.year, endFilterDate.month, endFilterDate.day);
+      final jobTitleQuery = jobTitle?.trim() ?? '';
+      final companyQuery = companyName?.trim() ?? '';
       for (final rawItem in fetchedRaw) {
         final Map<String, dynamic> map =
             Map<String, dynamic>.from(rawItem as Map);
@@ -354,34 +373,39 @@ class _JobScreenbtState extends State<Jobscreenbt> {
           }
         }
 
-        final createdOnString =
-            (map['created_on'] ?? map['postTime'] ?? map['createdAt'] ?? '')
-                .toString();
-        final parsedDate = parseDateFlexible(createdOnString);
+        final rawPostedOn = (map['posted_on'] ??
+                map['created_on'] ??
+                map['postTime'] ??
+                map['createdAt'] ??
+                '')
+            .toString();
+        map['postTime'] = rawPostedOn;
+        map['created_on'] = rawPostedOn;
 
-        String postTime;
-        if (parsedDate != null) {
-          final diff = DateTime.now().difference(parsedDate);
-          if (diff.inMinutes < 60) {
-            postTime = '${diff.inMinutes} mins ago';
-          } else if (diff.inHours < 24) {
-            postTime = '${diff.inHours} hr ago';
-          } else {
-            postTime = '${diff.inDays} days ago';
-          }
-        } else {
-          final humanPattern = RegExp(
-              r'\b(ago|min|mins|minute|minutes|hr|hrs|day|days)\b',
-              caseSensitive: false);
-          if (humanPattern.hasMatch(createdOnString)) {
-            postTime = createdOnString;
-          } else {
-            postTime = 'N/A';
-          }
+        if (jobTitleQuery.isNotEmpty &&
+            !_matchesQuery(map['title']?.toString(), jobTitleQuery)) {
+          continue;
+        }
+        if (companyQuery.isNotEmpty &&
+            !_matchesQuery(map['company_name']?.toString(), companyQuery)) {
+          continue;
         }
 
-        map['postTime'] = postTime;
-        map['created_on'] = postTime;
+        if (startDateOnly != null && endDateOnly != null) {
+          final jobEnd = parseDateFlexible(
+              (map['end_date'] ?? map['expiry'] ?? '').toString());
+          if (jobEnd == null) {
+            continue;
+          }
+          final jobEndDateOnly =
+              DateTime(jobEnd.year, jobEnd.month, jobEnd.day);
+          if (jobEndDateOnly.isBefore(startDateOnly)) {
+            continue;
+          }
+          if (jobEndDateOnly.isAfter(endDateOnly)) {
+            continue;
+          }
+        }
 
         try {
           mapped.add(JobModelsd.fromJson(map));
@@ -445,11 +469,20 @@ class _JobScreenbtState extends State<Jobscreenbt> {
     }
 
     try {
-      final fetchedRaw = await JobApi.fetchJobs(
+      final searchQuery = _query.trim();
+      var fetchedRaw = await JobApi.fetchJobs(
         page: currentSearchPage,
         limit: pageLimit,
-        query: _query,
+        query: searchQuery,
       );
+
+      if (searchQuery.isNotEmpty && fetchedRaw.isEmpty) {
+        fetchedRaw = await JobApi.fetchJobs(
+          page: currentSearchPage,
+          limit: pageLimit,
+          companyName: searchQuery,
+        );
+      }
 
       if (!mounted) return;
 
@@ -485,6 +518,14 @@ class _JobScreenbtState extends State<Jobscreenbt> {
           }
         }
         map['skills'] = map['skills'] ?? (map['tags'] ?? []);
+        if (searchQuery.isNotEmpty) {
+          final title = map['title']?.toString();
+          final company = map['company_name']?.toString();
+          if (!_matchesQuery(title, searchQuery) &&
+              !_matchesQuery(company, searchQuery)) {
+            continue;
+          }
+        }
         try {
           mapped.add(JobModelsd.fromJson(map));
         } catch (e) {
@@ -736,7 +777,7 @@ class _JobScreenbtState extends State<Jobscreenbt> {
               logoUrl: jm.logoUrl,
               jobType: jm.jobType,
               endDate: jm.endDate,
-              isApplied: false,
+              isApplied: jm.isApplied,
               onTap: ({
                 required int jobId,
                 required int recordId,
@@ -792,6 +833,7 @@ class _JobScreenbtState extends State<Jobscreenbt> {
               logoUrl: jm.logoUrl,
               jobType: jm.jobType,
               endDate: jm.endDate,
+              isApplied: jm.isApplied,
               onTap: ({
                 required int jobId,
                 required int recordId,
@@ -849,6 +891,7 @@ class _JobScreenbtState extends State<Jobscreenbt> {
               logoUrl: jm.logoUrl,
               jobType: jm.jobType,
               endDate: jm.endDate,
+              isApplied: jm.isApplied,
               onTap: ({
                 required int jobId,
                 required int recordId,

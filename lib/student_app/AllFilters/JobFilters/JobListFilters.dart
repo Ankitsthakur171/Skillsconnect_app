@@ -20,6 +20,7 @@ class Joblistfilters extends StatefulWidget {
 class _JoblistfiltersState extends State<Joblistfilters>
     with SingleTickerProviderStateMixin {
   late TextEditingController jobTitleController;
+  late TextEditingController companyNameController;
   DateTime? _startDate;
   DateTime? _endDate;
 
@@ -50,8 +51,14 @@ class _JoblistfiltersState extends State<Joblistfilters>
     jobTitleController = TextEditingController(
       text: widget.currentFilters['jobTitle']?.toString() ?? '',
     );
-    _startDate = _parseDate(widget.currentFilters['start_date']?.toString());
-    _endDate = _parseDate(widget.currentFilters['end_date']?.toString());
+    companyNameController = TextEditingController(
+      text: widget.currentFilters['company_name']?.toString() ?? '',
+    );
+    _startDate = _parseDate((widget.currentFilters['posted_on'] ??
+        widget.currentFilters['start_date'])
+      ?.toString());
+    _endDate =
+      _parseDate(widget.currentFilters['end_date']?.toString());
 
     _fadeController = AnimationController(
       vsync: this,
@@ -67,6 +74,7 @@ class _JoblistfiltersState extends State<Joblistfilters>
   @override
   void dispose() {
     jobTitleController.dispose();
+    companyNameController.dispose();
     _fadeController.dispose();
     super.dispose();
   }
@@ -487,7 +495,30 @@ class _JoblistfiltersState extends State<Joblistfilters>
                             controller: jobTitleController,
                             onTap: _closeAllDropdowns,
                             decoration: InputDecoration(
-                              hintText: "e.g. React Developer",
+                              hintText: "Title",
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 14.w,
+                                vertical: 14.h,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12.r),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderSide: const BorderSide(
+                                  color: Color(0xFF005E6A),
+                                  width: 2,
+                                ),
+                                borderRadius: BorderRadius.circular(12.r),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          _label("Company Name"),
+                          TextField(
+                            controller: companyNameController,
+                            onTap: _closeAllDropdowns,
+                            decoration: InputDecoration(
+                              hintText: "Company",
                               contentPadding: EdgeInsets.symmetric(
                                 horizontal: 14.w,
                                 vertical: 14.h,
@@ -511,36 +542,36 @@ class _JoblistfiltersState extends State<Joblistfilters>
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    _label("Start Date"),
+                                    _label("Posted On"),
                                     GestureDetector(
                                       onTap: () => _pickDate(isStart: true),
-                                      child: InputDecorator(
-                                        decoration: InputDecoration(
-                                          hintText: "Select start date",
-                                          contentPadding: EdgeInsets.symmetric(
+                                      child: SizedBox(
+                                        height: 48.h,
+                                        child: Container(
+                                          alignment: Alignment.centerLeft,
+                                          padding: EdgeInsets.symmetric(
                                             horizontal: 14.w,
-                                            vertical: 14.h,
                                           ),
-                                          border: OutlineInputBorder(
+                                          decoration: BoxDecoration(
                                             borderRadius: BorderRadius.circular(12.r),
-                                          ),
-                                          focusedBorder: OutlineInputBorder(
-                                            borderSide: const BorderSide(
-                                              color: Color(0xFF005E6A),
-                                              width: 2,
+                                            border: Border.all(
+                                              color: Colors.grey.shade600,
                                             ),
-                                            borderRadius: BorderRadius.circular(12.r),
                                           ),
-                                        ),
-                                        child: Text(
-                                          _startDate == null
-                                              ? "Select start date"
-                                              : _formatDate(_startDate),
-                                          style: TextStyle(
-                                            fontSize: 14.sp,
-                                            color: _startDate == null
-                                                ? Colors.grey.shade600
-                                                : Colors.black87,
+                                          child: Text(
+                                            _startDate == null
+                                                ? "Select posted date"
+                                                : _formatDate(_startDate),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            softWrap: false,
+                                            textAlign: TextAlign.start,
+                                            style: TextStyle(
+                                              fontSize: 14.sp,
+                                              color: _startDate == null
+                                                  ? Colors.grey.shade600
+                                                  : Colors.black87,
+                                            ),
                                           ),
                                         ),
                                       ),
@@ -556,33 +587,33 @@ class _JoblistfiltersState extends State<Joblistfilters>
                                     _label("End Date"),
                                     GestureDetector(
                                       onTap: () => _pickDate(isStart: false),
-                                      child: InputDecorator(
-                                        decoration: InputDecoration(
-                                          hintText: "Select end date",
-                                          contentPadding: EdgeInsets.symmetric(
+                                      child: SizedBox(
+                                        height: 48.h,
+                                        child: Container(
+                                          alignment: Alignment.centerLeft,
+                                          padding: EdgeInsets.symmetric(
                                             horizontal: 14.w,
-                                            vertical: 14.h,
                                           ),
-                                          border: OutlineInputBorder(
+                                          decoration: BoxDecoration(
                                             borderRadius: BorderRadius.circular(12.r),
-                                          ),
-                                          focusedBorder: OutlineInputBorder(
-                                            borderSide: const BorderSide(
-                                              color: Color(0xFF005E6A),
-                                              width: 2,
+                                            border: Border.all(
+                                              color: Colors.grey.shade600,
                                             ),
-                                            borderRadius: BorderRadius.circular(12.r),
                                           ),
-                                        ),
-                                        child: Text(
-                                          _endDate == null
-                                              ? "Select end date"
-                                              : _formatDate(_endDate),
-                                          style: TextStyle(
-                                            fontSize: 14.sp,
-                                            color: _endDate == null
-                                                ? Colors.grey.shade600
-                                                : Colors.black87,
+                                          child: Text(
+                                            _endDate == null
+                                                ? "Select end date"
+                                                : _formatDate(_endDate),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            softWrap: false,
+                                            textAlign: TextAlign.start,
+                                            style: TextStyle(
+                                              fontSize: 14.sp,
+                                              color: _endDate == null
+                                                  ? Colors.grey.shade600
+                                                  : Colors.black87,
+                                            ),
                                           ),
                                         ),
                                       ),
@@ -719,6 +750,9 @@ class _JoblistfiltersState extends State<Joblistfilters>
 
                                 final result = <String, dynamic>{
                                   'jobTitle': jobTitleController.text.trim(),
+                                    'company_name':
+                                      companyNameController.text.trim(),
+                                  'posted_on': _formatDate(_startDate),
                                   'start_date': _formatDate(_startDate),
                                   'end_date': _formatDate(_endDate),
                                   'jobTypeId': selectedJobTypeId,

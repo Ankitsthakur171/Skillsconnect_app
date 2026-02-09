@@ -146,6 +146,7 @@ class _AppliedJobsPageState extends State<AppliedJobsPage> {
                 salary: job.salary,
                 postTime: job.postTime,
                 expiry: job.expiry,
+                endDate: job.endDate,
                 tags: job.tags,
                 logoUrl: job.companyLogo,
                 jobType: job.jobType,

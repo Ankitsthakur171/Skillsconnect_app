@@ -46,22 +46,28 @@ class JobCardBT extends StatelessWidget {
 
   /// Calculate and return the time left display string
   String _getTimeLeftDisplay() {
-    // Try to use endDate if available
-    if (endDate != null && endDate!.isNotEmpty) {
-      try {
-        final expireTime = DateTime.parse(endDate!);
-        final now = DateTime.now();
-        if (expireTime.isBefore(now)) {
-          return 'Expired';
-        }
-        // Format as "dd MMM yyyy" instead of relative time
-        return DateFormat('dd MMM yyyy').format(expireTime);
-      } catch (e) {
-        print('[JobCardBT] Error parsing endDate "$endDate": $e');
+    final raw = (endDate != null && endDate!.isNotEmpty) ? endDate! : expiry;
+    return _formatDateShort(raw);
+  }
+
+  String _formatDateShort(String raw) {
+    final value = raw.trim();
+    if (value.isEmpty) return 'N/A';
+    try {
+      if (RegExp(r'^\d{2}-\d{2}-\d{4}$').hasMatch(value)) {
+        final parts = value.split('-');
+        final parsed = DateTime(
+          int.parse(parts[2]),
+          int.parse(parts[1]),
+          int.parse(parts[0]),
+        );
+        return DateFormat('dd MMM yyyy').format(parsed);
       }
+      final parsed = DateTime.parse(value);
+      return DateFormat('dd MMM yyyy').format(parsed);
+    } catch (e) {
+      return raw;
     }
-    // Fallback to the static expiry value from API
-    return expiry;
   }
 
   /// Check if the job is expired
@@ -84,6 +90,8 @@ class JobCardBT extends StatelessWidget {
     final hasTags = tags.isNotEmpty;
     final safeSalary =
         (salary.isEmpty || salary.toLowerCase() == 'n/a') ? 'N/A' : salary;
+    final postedDisplay = _formatDateShort(postTime);
+    final endDisplay = _getTimeLeftDisplay();
     Widget logo = Image.asset(
       "assets/google.png",
       width: 34.w,
@@ -287,7 +295,7 @@ class JobCardBT extends StatelessWidget {
                         Row(
                           children: [
                             Text(
-                              "Posted - ",
+                              "Posted on - ",
                               style: TextStyle(
                                 fontSize: 12.sp,
                                 color: const Color(0xFF6F6F6F),
@@ -295,7 +303,7 @@ class JobCardBT extends StatelessWidget {
                               ),
                             ),
                             Text(
-                              postTime,
+                              postedDisplay,
                               style: TextStyle(
                                 fontSize: 12.sp,
                                 color: const Color(0xFF003840),
@@ -316,7 +324,7 @@ class JobCardBT extends StatelessWidget {
                               ),
                             ),
                             Text(
-                              _getTimeLeftDisplay(),
+                              endDisplay,
                               style: TextStyle(
                                 fontSize: 12.sp,
                                 color: const Color(0xFF003840),
@@ -355,7 +363,7 @@ class JobCardBT extends StatelessWidget {
       textColor = Colors.white;
       icon = Icons.cancel_outlined;
     } else if (isApplied) {
-      buttonText = 'Applied'; 
+      buttonText = 'Applied';
       gradient = null;
       backgroundColor = const Color(0xFF9E9E9E);
       textColor = Colors.white;

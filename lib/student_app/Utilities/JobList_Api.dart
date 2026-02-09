@@ -12,6 +12,7 @@ class JobApi {
     int page = 1,
     int limit = 10,
     String? query,
+    String? companyName,
   }) async {
     final prefs = await SharedPreferences.getInstance();
     final authToken = prefs.getString('authToken') ?? '';
@@ -25,6 +26,8 @@ class JobApi {
       "page": page,
       "limit": limit,
       if (query != null && query.trim().isNotEmpty) "job_title": query.trim(),
+      if (companyName != null && companyName.trim().isNotEmpty)
+        "company_name": companyName.trim(),
     };
     if (kDebugMode) {
       print("JobApi → Request Body: $bodyMap");
@@ -106,15 +109,9 @@ class JobApi {
         }
 
         final String jobType = (job['job_type'] ?? '').toString();
-        final createdOnStr = job['created_on']?.toString() ?? '';
-        final createdOn = DateTime.tryParse(createdOnStr) ?? DateTime.now();
-        final now = DateTime.now();
-        final diff = now.difference(createdOn);
-        final String postTime = diff.inMinutes < 60
-            ? '${diff.inMinutes} mins ago'
-            : diff.inHours < 24
-                ? '${diff.inHours} hr ago'
-                : '${diff.inDays} days ago';
+        final String postTime = (job['posted_on'] ?? job['created_on'] ?? '')
+          .toString()
+          .trim();
 
         final rawCtc = job['cost_to_company']?.toString() ?? '';
         final String salary =
@@ -161,6 +158,7 @@ class JobApi {
           'postTime': postTime,
           'expiry': expiry,
           'job_type': jobType,
+          'apply_type': job['apply_type']?.toString(),
           'tags': tags,
           'logoUrl': logoUrl,
           'jobToken': jobToken,

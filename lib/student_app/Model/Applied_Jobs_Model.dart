@@ -9,6 +9,7 @@ class AppliedJobModel {
   final String location;
   final String salary;
   final String expiry;
+  final String? endDate;
   final int jobId;
 
   AppliedJobModel({
@@ -23,17 +24,25 @@ class AppliedJobModel {
     required this.location,
     required this.salary,
     required this.expiry,
+    this.endDate,
   });
 
   factory AppliedJobModel.fromJson(Map<String, dynamic> json) {
-    final createdOn = DateTime.tryParse(json['created_on'] ?? '') ?? DateTime.now();
-    final now = DateTime.now();
-    final diff = now.difference(createdOn);
-    final postTime = diff.inMinutes < 60
-        ? '${diff.inMinutes} mins ago'
-        : diff.inHours < 24
-        ? '${diff.inHours} hr ago'
-        : '${diff.inDays} days ago';
+    final postTime = (json['posted_on'] ??
+        json['created_on'] ??
+        json['postTime'] ??
+        json['createdAt'] ??
+        json['postedOn'] ??
+        '')
+      .toString();
+    final endDate = (json['end_date'] ??
+        json['endDate'] ??
+        json['expiry_date'] ??
+        json['deadline'] ??
+        '')
+      .toString();
+    final expiryRaw =
+      (json['expiry'] ?? json['end_date'] ?? json['endDate'] ?? '').toString();
 
     return AppliedJobModel(
       jobId: json['job_id'] ?? '',
@@ -46,7 +55,8 @@ class AppliedJobModel {
       postTime: postTime,
       location: json['three_cities_name'] ?? '',
       salary: json['cost_to_company']?.toString() ?? '',
-      expiry: json['expiry'] ?? '',
+      expiry: expiryRaw,
+      endDate: endDate.isNotEmpty ? endDate : null,
     );
   }
 }

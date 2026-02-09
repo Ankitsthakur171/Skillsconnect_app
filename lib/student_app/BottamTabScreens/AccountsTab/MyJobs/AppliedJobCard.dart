@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:intl/intl.dart';
 
 class AppliedJobCardBT extends StatelessWidget {
   final String jobTitle;
@@ -8,6 +9,7 @@ class AppliedJobCardBT extends StatelessWidget {
   final String salary;
   final String postTime;
   final String expiry;
+  final String? endDate;
   final List<String> tags;
   final String? logoUrl;
   final String jobType;
@@ -20,6 +22,7 @@ class AppliedJobCardBT extends StatelessWidget {
     required this.salary,
     required this.postTime,
     required this.expiry,
+    this.endDate,
     required this.tags,
     required this.jobType,
     this.logoUrl,
@@ -45,6 +48,26 @@ class AppliedJobCardBT extends StatelessWidget {
       return false;
     }
 
+    String formatDateShort(String raw) {
+      final value = raw.trim();
+      if (value.isEmpty) return 'N/A';
+      try {
+        if (RegExp(r'^\d{2}-\d{2}-\d{4}$').hasMatch(value)) {
+          final parts = value.split('-');
+          final parsed = DateTime(
+            int.parse(parts[2]),
+            int.parse(parts[1]),
+            int.parse(parts[0]),
+          );
+          return DateFormat('dd MMM yyyy').format(parsed);
+        }
+        final parsed = DateTime.parse(value);
+        return DateFormat('dd MMM yyyy').format(parsed);
+      } catch (_) {
+        return raw;
+      }
+    }
+
     ScreenUtil.init(
       context,
       designSize: const Size(390, 844),
@@ -59,6 +82,10 @@ class AppliedJobCardBT extends StatelessWidget {
     final hasTags = filteredTags.isNotEmpty;
     final safeSalary =
       (salary.isEmpty || salary.toLowerCase() == 'n/a') ? '' : salary;
+    final postedDisplay = formatDateShort(postTime);
+    final endDisplay = formatDateShort((endDate != null && endDate!.isNotEmpty)
+      ? endDate!
+      : expiry);
 
     Widget logo = Image.asset(
       "assets/google.png",
@@ -262,7 +289,7 @@ class AppliedJobCardBT extends StatelessWidget {
                       Row(
                         children: [
                           Text(
-                            "Posted - ",
+                            "Posted on - ",
                             style: TextStyle(
                               fontSize: 12.sp,
                               color: const Color(0xFF6F6F6F),
@@ -270,7 +297,7 @@ class AppliedJobCardBT extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            postTime,
+                            postedDisplay,
                             style: TextStyle(
                               fontSize: 12.sp,
                               color: const Color(0xFF003840),
@@ -291,7 +318,7 @@ class AppliedJobCardBT extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            expiry,
+                            endDisplay,
                             style: TextStyle(
                               fontSize: 12.sp,
                               color: const Color(0xFF003840),
