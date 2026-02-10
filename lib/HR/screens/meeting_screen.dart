@@ -66,6 +66,7 @@ class _MeetingScreenState extends State<MeetingScreen> {
     super.initState();
     loadCompanyName();
     // _selectedStatus = widget.meeting.allAttendees.ap;
+    _attendees = widget.meeting.allAttendees; // ✅ Initialize local list
   }
 
   @override

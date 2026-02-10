@@ -46,9 +46,9 @@ class _LiveSlidingTextState extends State<LiveSlidingText>
                 end: Alignment.centerRight,
                 stops: const [0.1, 0.5, 0.9],
                 colors: const [
-                  Colors.red,
+                  Colors.green,
                   Colors.white,
-                  Colors.red,
+                  Colors.green,
                 ],
                 transform: GradientTranslation(_animation.value * bounds.width),
               ).createShader(bounds);

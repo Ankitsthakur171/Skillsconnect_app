@@ -573,6 +573,18 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
         connectSid: connectSid,
       );
       if (!mounted) return;
+      final normalizedTarget = _normalizeName(courseName);
+      final match = courseItems.firstWhere(
+        (m) => _normalizeName(m['text'] ?? '') == normalizedTarget,
+        orElse: () => {},
+      );
+      final matchedName = match.isNotEmpty ? (match['text'] ?? '').toString() : '';
+      final matchedId = match.isNotEmpty ? match['id']?.toString() : null;
+      String? resolvedId;
+      if (matchedId == null && courseName.trim().isNotEmpty) {
+        resolvedId = await _resolveCourseId(courseName.trim());
+      }
+
       setState(() {
         courseItems = items;
         courseList = courseItems.map((m) => m['text'] ?? '').toList();
@@ -584,18 +596,17 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
           }
           courseName = 'Please Select';
           selectedCourseId = null;
-        } else if (courseName.isEmpty ||
-            !courseList.contains(courseName) ||
-            courseList.isEmpty) {
+        } else if (courseName.trim().isEmpty || courseList.isEmpty) {
           courseName = courseList.isNotEmpty ? courseList[0] : '';
-          selectedCourseId =
-              courseItems.isNotEmpty ? courseItems[0]['id'] : null;
+          selectedCourseId = courseItems.isNotEmpty ? courseItems[0]['id'] : null;
+        } else if (matchedName.isNotEmpty) {
+          courseName = matchedName;
+          selectedCourseId = matchedId;
         } else {
-          final match = courseItems.firstWhere(
-            (m) => (m['text'] ?? '').toLowerCase() == courseName.toLowerCase(),
-            orElse: () => {},
-          );
-          selectedCourseId = match.isNotEmpty ? match['id'] : null;
+          if (!courseList.contains(courseName)) {
+            courseList.insert(0, courseName);
+          }
+          selectedCourseId = resolvedId;
         }
       });
     } catch (e, st) {
@@ -722,6 +733,10 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
       }
     } catch (_) {}
     return '';
+  }
+
+  String _normalizeName(String input) {
+    return input.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
   }
 
   bool get _isSchoolDegree {

@@ -157,7 +157,6 @@ class JobCardBT extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Row 1: Logo - Name - CTC
                   Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Container(
                       padding: EdgeInsets.all(4.w),

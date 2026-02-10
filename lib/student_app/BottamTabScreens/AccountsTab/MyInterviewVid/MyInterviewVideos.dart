@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:skillsconnect/student_app/BottamTabScreens/AccountsTab/MyInterviewVid/camera_record_screen.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import 'package:http/http.dart' as http;
 import '../../../Model/My_Interview_Videos_Model.dart';
@@ -17,6 +18,10 @@ import '../../../Utilities/MyAccount_Get_Post/My_Interview_Videos_Api.dart';
 import '../../../Services/VideoUploadService.dart';
 import 'VideopreviewScreen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:video_compress/video_compress.dart';
+import 'package:camera/camera.dart';
+
+
 
 class MyInterviewVideos extends StatefulWidget {
   const MyInterviewVideos({super.key});
@@ -27,9 +32,15 @@ class MyInterviewVideos extends StatefulWidget {
 
 class _MyInterviewVideosState extends State<MyInterviewVideos>
     with WidgetsBindingObserver {
+
   VideoIntroModel? _videoIntroModel;
   final Map<String, String> _questionVideoPaths = {};
   bool _isFullScreen = false;
+
+  CameraController? _cameraController;
+List<CameraDescription>? _cameras;
+
+  
 
   final String youtubeUrl = 'https://www.youtube.com/watch?v=yeTExU0nuho';
   YoutubePlayerController? _controller;
@@ -62,6 +73,41 @@ class _MyInterviewVideosState extends State<MyInterviewVideos>
       print('Lifecycle pause error: $e');
     }
   }
+
+  
+
+// Future<File?> _compressVideo(File inputFile) async {
+//   try {
+//     final originalSize =
+//         inputFile.lengthSync() / (1024 * 1024);
+//     print('🎥 Original video size: ${originalSize.toStringAsFixed(2)} MB');
+
+//     final info = await VideoCompress.compressVideo(
+//       inputFile.path,
+//       quality: VideoQuality.MediumQuality, // ⭐ 720p → ~6–10MB
+//       deleteOrigin: false,
+//       includeAudio: true,
+//     );
+
+//     if (info == null || info.path == null) {
+//       print('❌ Video compression failed');
+//       return null;
+//     }
+
+//     final compressedFile = File(info.path!);
+//     final compressedSize =
+//         compressedFile.lengthSync() / (1024 * 1024);
+
+//     print(
+//         '🎥 Compressed video size: ${compressedSize.toStringAsFixed(2)} MB');
+
+//     return compressedFile;
+//   } catch (e) {
+//     print('❌ Compression error: $e');
+//     return null;
+//   }
+// }
+
 
   Future<void> _fetchVideoIntro() async {
     final api = VideoIntroApi();
@@ -154,42 +200,114 @@ class _MyInterviewVideosState extends State<MyInterviewVideos>
     }
 
     _controller = null;
+
   }
 
-  Future<void> _recordVideo(String question) async {
-    await [
-      Permission.camera,
-      Permission.storage,
-      Permission.microphone,
-    ].request();
+  Future<File?> _lightCompress(File input) async {
+  try {
+    final info = await VideoCompress.compressVideo(
+      input.path,
+      quality: VideoQuality.LowQuality, // ⚡ FAST
+      deleteOrigin: false,
+      includeAudio: true,
+    );
 
-    final picker = ImagePicker();
-    final XFile? recorded = await picker.pickVideo(
-        source: ImageSource.camera, maxDuration: const Duration(seconds: 60));
+    if (info?.path == null) return null;
 
-    if (recorded == null) {
-      return;
-    }
-
-    try {
-      final appDir = await getApplicationDocumentsDirectory();
-      final normalized = question.trim().toLowerCase();
-      final safeFileName = "${normalized.replaceAll(RegExp(r'\s+'), "_")}.mp4";
-      final newPath = path.join(appDir.path, safeFileName);
-
-      final File newVideo = await File(recorded.path).copy(newPath);
-
-      setState(() {
-        _questionVideoPaths[normalized] = newVideo.path;
-      });
-
-      await _uploadRecordedVideoAndRegister(newVideo.path, normalized);
-    } catch (e, st) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to save video: $e')),
-      );
-    }
+    print('🎥 Light compressed size: ${(File(info!.path!).lengthSync() / (1024 * 1024)).toStringAsFixed(2)} MB');
+    return File(info.path!);
+  } catch (_) {
+    return null;
   }
+}
+
+Future<void> _recordVideo(String question) async {
+  final result = await Navigator.push<File?>(
+    context,
+    MaterialPageRoute(
+      builder: (_) => CameraRecordScreen(question: question),
+    ),
+  );
+
+  if (result == null) return;
+
+  final normalized = question.trim().toLowerCase();
+
+  final appDir = await getApplicationDocumentsDirectory();
+  final safeName =
+      "${normalized.replaceAll(RegExp(r'\s+'), "_")}.mp4";
+  final finalPath = path.join(appDir.path, safeName);
+
+  final saved = await result.copy(finalPath);
+
+  setState(() {
+    _questionVideoPaths[normalized] = saved.path;
+  });
+
+  await _uploadRecordedVideoAndRegister(saved.path, normalized);
+}
+
+
+Future<void> _initCamera() async {
+  _cameras ??= await availableCameras();
+
+  final frontCamera = _cameras!.firstWhere(
+    (c) => c.lensDirection == CameraLensDirection.front,
+    orElse: () => _cameras!.first,
+  );
+
+  _cameraController = CameraController(
+    frontCamera,
+    ResolutionPreset.medium, 
+    enableAudio: true,
+    imageFormatGroup: ImageFormatGroup.yuv420,
+  );
+
+  await _cameraController!.initialize();
+}
+
+
+// Future<void> _recordVideo(String question) async {
+//   await [
+//     Permission.camera,
+//     Permission.storage,
+//     Permission.microphone,
+//   ].request();
+
+//   final picker = ImagePicker();
+//   final XFile? recorded = await picker.pickVideo(
+//     source: ImageSource.camera,
+//     maxDuration: const Duration(seconds: 60),
+//   );
+//   if (recorded == null) return;
+//   try {
+//     final normalized = question.trim().toLowerCase();
+//     final originalFile = File(recorded.path);
+//     // 🔥 COMPRESS VIDEO
+//     final compressedFile = await _compressVideo(originalFile);
+//     if (compressedFile == null) {
+//       ScaffoldMessenger.of(context).showSnackBar(
+//         const SnackBar(content: Text('Video compression failed')),
+//       );
+//       return;
+//     }
+//     final appDir = await getApplicationDocumentsDirectory();
+//     final safeFileName =
+//         "${normalized.replaceAll(RegExp(r'\s+'), "_")}.mp4";
+//     final finalPath = path.join(appDir.path, safeFileName);
+//     final finalVideo = await compressedFile.copy(finalPath);
+//     setState(() {
+//       _questionVideoPaths[normalized] = finalVideo.path;
+//     });
+//     // 🚀 Upload COMPRESSED video
+//     await _uploadRecordedVideoAndRegister(finalVideo.path, normalized);
+//   } catch (e) {
+//     ScaffoldMessenger.of(context).showSnackBar(
+//       SnackBar(content: Text('Failed to record video: $e')),
+//     );
+//   }
+// }
+
 
   String _mapQuestionToAction(String normalizedQuestion) {
     if (normalizedQuestion.contains("tell me about")) return "about_yourself";
@@ -301,45 +419,42 @@ class _MyInterviewVideosState extends State<MyInterviewVideos>
   }
 
   Future<void> _processPendingUploads() async {
-    print('📤 [MyInterviewVideos] _processPendingUploads called');
+  print('📤 [MyInterviewVideos] _processPendingUploads called');
+
+  if (mounted) {
     setState(() => _isUploading = true);
+  }
 
-    try {
-      await VideoUploadService.processPendingUploads(
-        onProgress: (questionId, status) {
-          print('📤 [MyInterviewVideos] Progress callback: $questionId -> $status');
-          if (mounted) {
-            setState(() {
-              _uploadProgress[questionId] = status;
-            });
-          }
-        },
-        onComplete: (questionId, success) {
-          print('✅ [MyInterviewVideos] Complete callback: $questionId -> ${success ? 'success' : 'failed'}');
-          if (mounted) {
-            if (success) {
-              setState(() {
-                _uploadProgress[questionId] = 'Completed ✓';
-              });
-            } else {
-              setState(() {
-                _uploadProgress[questionId] = 'Failed - Check logs';
-              });
-            }
-          }
-        },
-      );
+  try {
+    await VideoUploadService.processPendingUploads(
+      onProgress: (questionId, status) {
+        print('📤 Progress: $questionId -> $status');
+        if (mounted) {
+          setState(() {
+            _uploadProgress[questionId] = status;
+          });
+        }
+      },
+      onComplete: (questionId, success) {
+        print('✅ Complete: $questionId -> $success');
+        if (mounted) {
+          setState(() {
+            _uploadProgress[questionId] =
+                success ? 'Completed ✓' : 'Failed - Check logs';
+          });
+        }
+      },
+    );
 
-      // Refresh data
-      await _fetchVideoIntro();
-
-      print('✅ [MyInterviewVideos] All uploads processed');
-    } catch (e) {
-      print('❌ [MyInterviewVideos] Error in _processPendingUploads: $e');
-    } finally {
+    await _fetchVideoIntro();
+  } catch (e) {
+    print('❌ Upload processing error: $e');
+  } finally {
+    if (mounted) {
       setState(() => _isUploading = false);
     }
   }
+}
 
   String _monthYearFolder() {
     final now = DateTime.now();
@@ -611,6 +726,13 @@ class _MyInterviewVideosState extends State<MyInterviewVideos>
         hasPath && !isRemote ? File(videoPath!).existsSync() : false;
     final canPreview = isRemote || existsLocally;
 
+    final questionId = normalized.replaceAll(RegExp(r'[^a-z0-9]'), '');
+
+    // Determine upload status for this question (questionId or normalized key)
+    final statusRaw = _uploadProgress[questionId] ?? _uploadProgress[normalized];
+    final status = statusRaw ?? '';
+    final isInProgress = status.toLowerCase().contains('upload') || status.toLowerCase().contains('queued') || status.toLowerCase().contains('starting');
+
     return Container(
       key: ValueKey('$normalized-$canPreview'),
       margin: EdgeInsets.only(bottom: 12.h),
@@ -633,6 +755,7 @@ class _MyInterviewVideosState extends State<MyInterviewVideos>
               ),
             ),
           ),
+          // Show upload status on the button if available
           ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF005E6A),
@@ -641,117 +764,132 @@ class _MyInterviewVideosState extends State<MyInterviewVideos>
               ),
               padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 7.h),
             ),
-            icon: Icon(
-              canPreview ? Icons.play_circle_fill_outlined : Icons.play_arrow,
-              size: 18.w,
-              color: Colors.white,
-            ),
+            icon: isInProgress
+                ? SizedBox(
+                    height: 16.h,
+                    width: 16.h,
+                    child: const CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : Icon(
+                    canPreview ? Icons.play_circle_fill_outlined : Icons.play_arrow,
+                    size: 18.w,
+                    color: Colors.white,
+                  ),
             label: Text(
-              canPreview ? "Preview" : "Start",
+              // prefer a friendly status label when uploading/queued, otherwise original labels
+              status.isNotEmpty
+                  ? (status.length > 18 ? status.substring(0, 18) + '...' : status)
+                  : (canPreview ? "Preview" : "Start"),
               style: TextStyle(color: Colors.white, fontSize: 13.sp),
             ),
-            onPressed: () async {
-              if (canPreview) {
-                // hide/stop youtube before pushing preview to avoid surface flash
-                _hideAndDisposePlayer();
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => VideoPreviewScreen(
-                      videoUrl: videoPath!,
-                      question: question,
-                    ),
-                  ),
-                ).then((_) {
-                  try {
-                    if (_videoId.isNotEmpty && _controller == null) {
-                      _createControllerIfNeeded();
-                      if (mounted) {
-                        setState(() {
-                          _showYoutube = true;
-                        });
-                      }
-                    } else {
-                      if (mounted) setState(() => _showYoutube = true);
-                    }
-                  } catch (e) {
-                    print('Error recreating controller after preview pop: $e');
-                  }
-                });
-              } else {
-                final shouldProceed = await showDialog<bool>(
-                  context: context,
-                  barrierDismissible: false,
-                  builder: (context) => AlertDialog(
-                    backgroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20.r),
-                    ),
-                    title: Text(
-                      "Important",
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 16.sp),
-                    ),
-                    content: Text(
-                      "Once you upload the video, it will no longer be available to re-take!",
-                      style: TextStyle(
-                          color: Colors.red,
-                          fontSize: 13.sp,
-                          fontWeight: FontWeight.w600),
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pop(context, false);
-                        },
-                        child: Text(
-                          "Cancel",
-                          style:
-                              TextStyle(color: Colors.black, fontSize: 12.sp),
-                        ),
-                      ),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10.r),
+            onPressed: isInProgress
+                ? null
+                : () async {
+                    if (canPreview) {
+                      // hide/stop youtube before pushing preview to avoid surface flash
+                      _hideAndDisposePlayer();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => VideoPreviewScreen(
+                            videoUrl: videoPath!,
+                            question: question,
                           ),
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 14.w, vertical: 7.h),
                         ),
-                        onPressed: () {
-                          Navigator.pop(context, true);
-                        },
-                        child: Text(
-                          "Proceed",
-                          style:
-                              TextStyle(color: Colors.white, fontSize: 12.sp),
+                      ).then((_) {
+                        try {
+                          if (_videoId.isNotEmpty && _controller == null) {
+                            _createControllerIfNeeded();
+                            if (mounted) {
+                              setState(() {
+                                _showYoutube = true;
+                              });
+                            }
+                          } else {
+                            if (mounted) setState(() => _showYoutube = true);
+                          }
+                        } catch (e) {
+                          print('Error recreating controller after preview pop: $e');
+                        }
+                      });
+                    } else {
+                      final shouldProceed = await showDialog<bool>(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (context) => AlertDialog(
+                          backgroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20.r),
+                          ),
+                          title: Text(
+                            "Important",
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 16.sp),
+                          ),
+                          content: Text(
+                            "Once you upload the video, it will no longer be available to re-take!",
+                            style: TextStyle(
+                                color: Colors.red,
+                                fontSize: 13.sp,
+                                fontWeight: FontWeight.w600),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () {
+                                Navigator.pop(context, false);
+                              },
+                              child: Text(
+                                "Cancel",
+                                style: TextStyle(color: Colors.black, fontSize: 12.sp),
+                              ),
+                            ),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10.r),
+                                ),
+                                padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 7.h),
+                              ),
+                              onPressed: () {
+                                Navigator.pop(context, true);
+                              },
+                              child: Text(
+                                "Proceed",
+                                style: TextStyle(color: Colors.white, fontSize: 12.sp),
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
-                  ),
-                );
-                if (shouldProceed == true) {
-                  _recordVideo(question);
-                }
-              }
-            },
+                      );
+                      if (shouldProceed == true) {
+                        _recordVideo(question);
+                      }
+                    }
+                  },
           ),
         ],
       ),
     );
   }
 
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    try {
-      _hideAndDisposePlayer();
-    } catch (_) {}
-    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    super.dispose();
-  }
+@override
+void dispose() {
+  WidgetsBinding.instance.removeObserver(this);
+
+  try {
+    _hideAndDisposePlayer();
+  } catch (_) {}
+
+VideoCompress.dispose();
+  SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  super.dispose();
+}
+
 }
 
 Widget iconCircleButton(IconData icon, {VoidCallback? onPressed}) {

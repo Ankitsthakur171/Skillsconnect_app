@@ -500,7 +500,10 @@ class _HomeScreen2State extends State<HomeScreen2> {
                               return InterviewScheduleCard(
                                 interview: interview,
                                 onViewDetails: () {
-                                  context.read<NavigationBloc>().add(GoToInterviewScreen2());
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (_) => const InterviewScreenCustom()),
+                                  );
                                 },
                               );
                             },

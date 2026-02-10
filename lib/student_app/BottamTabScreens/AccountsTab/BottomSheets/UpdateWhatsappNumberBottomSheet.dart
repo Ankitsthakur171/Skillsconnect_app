@@ -39,6 +39,7 @@ class _UpdateWhatsAppBottomSheetState extends State<UpdateWhatsAppBottomSheet> {
 
   final Color _accent = const Color(0xFF005E6A);
   bool _sending = false;
+  OverlayEntry? _activeSnack;
 
   @override
   void initState() {
@@ -51,6 +52,8 @@ class _UpdateWhatsAppBottomSheetState extends State<UpdateWhatsAppBottomSheet> {
 
   @override
   void dispose() {
+    _activeSnack?.remove();
+    _activeSnack = null;
     newNumberController
       ..removeListener(_onNewNumberChanged)
       ..dispose();
@@ -102,6 +105,9 @@ class _UpdateWhatsAppBottomSheetState extends State<UpdateWhatsAppBottomSheet> {
     final overlay = Overlay.of(context);
     if (overlay == null) return;
 
+    _activeSnack?.remove();
+    _activeSnack = null;
+
     final overlayEntry = OverlayEntry(
       builder: (ctx) {
         final topInset = MediaQuery.of(ctx).padding.top;
@@ -134,10 +140,12 @@ class _UpdateWhatsAppBottomSheetState extends State<UpdateWhatsAppBottomSheet> {
       },
     );
 
+    _activeSnack = overlayEntry;
     overlay.insert(overlayEntry);
 
     Future.delayed(const Duration(seconds: 3), () {
-      if (mounted) overlayEntry.remove();
+      if (overlayEntry.mounted) overlayEntry.remove();
+      if (_activeSnack == overlayEntry) _activeSnack = null;
     });
   }
 

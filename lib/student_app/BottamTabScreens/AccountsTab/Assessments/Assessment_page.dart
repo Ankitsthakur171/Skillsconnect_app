@@ -282,7 +282,7 @@ class _AssessmentPageState extends State<AssessmentPage> {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                ],
+                ],  
               ),
             ),
             Padding(
