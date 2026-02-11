@@ -473,7 +473,7 @@ class _AccountScreenState extends State<AccountScreen> {
           child: ClipOval(
             child: SizedBox.expand(
               child: Transform.scale(
-                scale: 1.08,
+                scale: 1.25,
                 child: _profileData!.userImage != null
                     ? Image.network(
                         _profileData!.userImage!,
@@ -481,12 +481,7 @@ class _AccountScreenState extends State<AccountScreen> {
                         alignment: Alignment.center,
                         filterQuality: FilterQuality.high,
                       )
-                    : Image.asset(
-                        'assets/placeholder.jpg',
-                        fit: BoxFit.cover,
-                        alignment: Alignment.center,
-                        filterQuality: FilterQuality.high,
-                      ),
+                    : _buildGenderPlaceholder(),
               ),
             ),
           ),
@@ -524,6 +519,20 @@ class _AccountScreenState extends State<AccountScreen> {
             ),
           ),
       ],
+    );
+  }
+
+  Widget _buildGenderPlaceholder() {
+    final gender = _profileData?.gender?.toLowerCase() ?? '';
+    final placeholderImage = gender.contains('female')
+        ? 'assets/femaleplaceholder.png'
+        : 'assets/placeholder.jpg';
+
+    return Image.asset(
+      placeholderImage,
+      fit: BoxFit.cover,
+      alignment: Alignment.center,
+      filterQuality: FilterQuality.high,
     );
   }
 

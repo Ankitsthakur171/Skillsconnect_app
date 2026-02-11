@@ -1825,8 +1825,14 @@ class _MyAccountState extends State<MyAccount> {
         fit: BoxFit.cover,
       );
     } else {
-      displayedImage = const Image(
-        image: AssetImage('assets/placeholder.jpg'),
+      // Use gender-specific placeholder if available
+      final gender = personalDetail?.gender?.toLowerCase() ?? '';
+      final placeholderImage = gender.contains('female') 
+          ? 'assets/femaleplaceholder.png'
+          : 'assets/placeholder.jpg';
+      
+      displayedImage = Image(
+        image: AssetImage(placeholderImage),
         fit: BoxFit.cover,
       );
     }
@@ -1846,7 +1852,7 @@ class _MyAccountState extends State<MyAccount> {
               child: ClipOval(
                 child: SizedBox.expand(
                   child: Transform.scale(
-                    scale: 1.08,
+                    scale: 1.25,
                     child: displayedImage is Image
                         ? Image(
                             image: displayedImage.image,

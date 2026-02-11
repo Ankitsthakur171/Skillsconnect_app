@@ -51,9 +51,12 @@ class _EditPersonalDetailsSheetState extends State<EditPersonalDetailsSheet>
   bool isLoadingCities = false;
   bool isSubmitting = false;
   List<String> states = [];
-  List<String> cities = ['Select a state first'];
+  List<String> cities = [];
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
+  Map<String, String> _stateIdCache = {}; // Cache for state name -> state ID
+  int _cityOffset = 0;
+  bool _hasMoreCities = true;
   final GlobalKey _firstNameKey = GlobalKey();
   final GlobalKey _lastNameKey = GlobalKey();
   final GlobalKey _dobKey = GlobalKey();
@@ -153,6 +156,11 @@ class _EditPersonalDetailsSheetState extends State<EditPersonalDetailsSheet>
     _dobFocusNode.addListener(() => _scrollToField(_dobKey));
 
     _fetchStateList();
+    
+    // Pre-load cities for the initially selected state (if any)
+    if (selectedState.isNotEmpty && selectedState != 'No States Available') {
+      Future.delayed(const Duration(milliseconds: 500), _fetchCityList);
+    }
   }
 
   void _scrollToField(GlobalKey key) {
@@ -219,55 +227,112 @@ class _EditPersonalDetailsSheetState extends State<EditPersonalDetailsSheet>
         cities = ['Select a state first'];
         selectedCity = cities.first;
         isLoadingCities = false;
+        _cityOffset = 0;
+        _hasMoreCities = true;
       });
       return;
     }
 
-    setState(() => isLoadingCities = true);
+    setState(() {
+      isLoadingCities = true;
+      cities = [];
+      _cityOffset = 0;
+      _hasMoreCities = true;
+    });
 
     final prefs = await SharedPreferences.getInstance();
-    final cachedCities = prefs.getStringList('cached_cities_$selectedState');
-    if (cachedCities != null && cachedCities.isNotEmpty) {
-      if (!mounted) return;
-      setState(() {
-        cities = cachedCities;
-        selectedCity =
-            cities.contains(selectedCity) ? selectedCity : cities.first;
-        isLoadingCities = false;
-      });
-      return;
-    }
-
     final authToken = prefs.getString('authToken') ?? '';
     final connectSid = prefs.getString('connectSid') ?? '';
     final stateId = await _resolveStateId(selectedState);
 
     try {
-      final fetchedCities = await CityListApi.fetchCities(
-          cityName: '',
-          stateId: stateId,
-          authToken: authToken,
-          connectSid: connectSid);
+      final result = await CityListApi.fetchCitiesPage(
+        cityName: '',
+        stateId: stateId,
+        authToken: authToken,
+        connectSid: connectSid,
+        offset: 0,
+        limit: 30,
+      );
+
       if (!mounted) return;
+
+      final fetchedCities = (result['cities'] as List<String>?) ?? [];
+      final hasMore = result['hasMore'] as bool? ?? false;
+
       setState(() {
-        cities =
-            fetchedCities.isNotEmpty ? fetchedCities : ['No Cities Available'];
+        cities = fetchedCities.isNotEmpty
+            ? fetchedCities
+            : ['No Cities Available'];
         selectedCity =
             cities.contains(selectedCity) ? selectedCity : cities.first;
         isLoadingCities = false;
+        _cityOffset = fetchedCities.length;
+        _hasMoreCities = hasMore;
       });
-      prefs.setStringList('cached_cities_$selectedState', cities);
     } catch (e) {
       if (!mounted) return;
       setState(() {
         cities = ['No Cities Available'];
         selectedCity = cities.first;
         isLoadingCities = false;
+        _hasMoreCities = false;
+      });
+    }
+  }
+
+  Future<void> _loadMoreCities() async {
+    if (!_hasMoreCities || isLoadingCities || selectedState.isEmpty) {
+      return;
+    }
+
+    setState(() => isLoadingCities = true);
+
+    final prefs = await SharedPreferences.getInstance();
+    final authToken = prefs.getString('authToken') ?? '';
+    final connectSid = prefs.getString('connectSid') ?? '';
+    final stateId = await _resolveStateId(selectedState);
+
+    try {
+      final result = await CityListApi.fetchCitiesPage(
+        cityName: '',
+        stateId: stateId,
+        authToken: authToken,
+        connectSid: connectSid,
+        offset: _cityOffset,
+        limit: 30,
+      );
+
+      if (!mounted) return;
+
+      final fetchedCities = (result['cities'] as List<String>?) ?? [];
+      final hasMore = result['hasMore'] as bool? ?? false;
+
+      setState(() {
+        if (fetchedCities.isNotEmpty) {
+          // Create NEW list to trigger didUpdateWidget on CustomFieldPersonalDetail
+          cities = [...cities, ...fetchedCities];
+          _cityOffset += fetchedCities.length;
+          print('✨ Loaded ${fetchedCities.length} more cities. Total: ${cities.length}');
+        }
+        _hasMoreCities = hasMore;
+        isLoadingCities = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        isLoadingCities = false;
+        _hasMoreCities = false;
       });
     }
   }
 
   Future<String> _resolveStateId(String stateName) async {
+    // Check cache first to avoid redundant API calls
+    if (_stateIdCache.containsKey(stateName)) {
+      return _stateIdCache[stateName] ?? '';
+    }
+
     final prefs = await SharedPreferences.getInstance();
     final authToken = prefs.getString('authToken') ?? '';
     final connectSid = prefs.getString('connectSid') ?? '';
@@ -290,7 +355,10 @@ class _EditPersonalDetailsSheetState extends State<EditPersonalDetailsSheet>
         if (data['status'] == true &&
             data['data'] is List &&
             data['data'].isNotEmpty) {
-          return data['data'][0]['id'].toString();
+          final stateId = data['data'][0]['id'].toString();
+          // Cache the resolved ID for future use
+          _stateIdCache[stateName] = stateId;
+          return stateId;
         }
       }
     } catch (_) {}
@@ -434,8 +502,6 @@ class _EditPersonalDetailsSheetState extends State<EditPersonalDetailsSheet>
                             setState(() {
                               selectedState = val ?? states.first;
                               selectedCity = '';
-                              cities = ['Select a state first'];
-                              isLoadingCities = true;
                             });
                             await _fetchCityList();
                           },
@@ -443,28 +509,16 @@ class _EditPersonalDetailsSheetState extends State<EditPersonalDetailsSheet>
                           onBeforeTap: () => _scrollToField(_stateKey),
                         ),
                         _buildLabel('City'),
-                        Stack(
-                          children: [
-                            CustomFieldPersonalDetail(
-                              key: _cityKey,
-                              cities,
-                              selectedCity,
-                              (val) {
-                                setState(
-                                    () => selectedCity = val ?? cities.first);
-                              },
-                              label: 'Select a city',
-                              onBeforeTap: () => _scrollToField(_cityKey),
-                            ),
-                            if (isLoadingCities)
-                              const Positioned.fill(
-                                child: IgnorePointer(
-                                  child: Center(
-                                      child: CircularProgressIndicator(
-                                          strokeWidth: 2)),
-                                ),
-                              ),
-                          ],
+                        CustomFieldPersonalDetail(
+                          key: _cityKey,
+                          cities,
+                          selectedCity,
+                          (val) {
+                            setState(() => selectedCity = val ?? cities.first);
+                          },
+                          label: 'Select a city',
+                          onBeforeTap: () => _scrollToField(_cityKey),
+                          onLoadMore: _loadMoreCities,
                         ),
                         SizedBox(height: 27.1.h),
                         ElevatedButton(

@@ -7,6 +7,7 @@ class CustomFieldPersonalDetail extends StatefulWidget {
   final ValueChanged<String?> onChanged;
   final String label;
   final VoidCallback? onBeforeTap;
+  final VoidCallback? onLoadMore; // Callback when user scrolls to 90%
 
   const CustomFieldPersonalDetail(
       this.items,
@@ -15,6 +16,7 @@ class CustomFieldPersonalDetail extends StatefulWidget {
         super.key,
         this.label = 'Select an option',
         this.onBeforeTap,
+        this.onLoadMore,
       });
 
   @override
@@ -28,15 +30,50 @@ class _CustomFieldPersonalDetailState extends State<CustomFieldPersonalDetail> {
   late List<String> _filteredItems;
   final GlobalKey _key = GlobalKey();
   final FocusNode _focusNode = FocusNode();
+  late ScrollController _scrollController;
   Timer? _debounce;
+  bool _loadMoreCalled = false; // Prevent multiple calls
+  void Function(VoidCallback)? _setOverlayState; // Reference to overlay's setState
 
   @override
   void initState() {
     super.initState();
     _searchController = TextEditingController();
     _filteredItems = widget.items.toSet().toList();
+    _scrollController = ScrollController();
     _focusNode.addListener(_handleFocusChange);
     print('Init: FocusNode created, hasFocus: ${_focusNode.hasFocus}');
+  }
+
+  @override
+  void didUpdateWidget(CustomFieldPersonalDetail oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // When parent updates items (e.g., new cities loaded), update overlay
+    if (oldWidget.items.length != widget.items.length) {
+      print('didUpdateWidget: Items count changed from ${oldWidget.items.length} to ${widget.items.length}');
+      // Update the overlay state if it's open
+      if (_overlayEntry != null && _setOverlayState != null) {
+        // Defer the setState call to after the current build frame is complete
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_setOverlayState != null) {
+            _setOverlayState?.call(() {
+              final query = _searchController.text;
+              if (query.isEmpty) {
+                // No search: show all new items
+                _filteredItems = widget.items.toSet().toList();
+              } else {
+                // With search: filter the new combined items
+                _filteredItems = widget.items
+                    .where((item) => item.toLowerCase().contains(query.toLowerCase()))
+                    .toSet()
+                    .toList();
+              }
+              print('didUpdateWidget: Filtered items now: ${_filteredItems.length}');
+            });
+          }
+        });
+      }
+    }
   }
 
   @override
@@ -45,6 +82,7 @@ class _CustomFieldPersonalDetailState extends State<CustomFieldPersonalDetail> {
     _focusNode.removeListener(_handleFocusChange);
     _focusNode.dispose();
     _searchController.dispose();
+    _scrollController.dispose();
     _removeOverlay();
     print('Dispose: Cleaning up');
     super.dispose();
@@ -60,13 +98,14 @@ class _CustomFieldPersonalDetailState extends State<CustomFieldPersonalDetail> {
     if (_overlayEntry == null) {
       _filteredItems = widget.items.toSet().toList();
       _searchController.clear();
+      _loadMoreCalled = false; // Reset flag when opening
       _overlayEntry = _createOverlayEntry();
       Overlay.of(context).insert(_overlayEntry!);
       
       WidgetsBinding.instance.addPostFrameCallback((_) {
         widget.onBeforeTap?.call();
       });
-      print('ToggleDropdown: Overlay created');
+      print('ToggleDropdown: Overlay created, showing ${_filteredItems.length} items');
     } else {
       _removeOverlay();
       _focusNode.unfocus();
@@ -84,6 +123,29 @@ class _CustomFieldPersonalDetailState extends State<CustomFieldPersonalDetail> {
     widget.onChanged(item);
     _removeOverlay();
     print('SelectItem: Selected $item');
+  }
+
+  void _checkScroll(ScrollNotification notification) {
+    if (notification is ScrollUpdateNotification || notification is ScrollEndNotification) {
+      final maxScroll = _scrollController.position.maxScrollExtent;
+      final currentScroll = _scrollController.offset;
+      const threshold = 100.0; // Load when within 100 pixels of bottom
+      
+      // If scrolled past 90% of max and more items might be available
+      if (maxScroll > 0 && currentScroll >= maxScroll * 0.9 && currentScroll >= maxScroll - threshold) {
+        if (!_loadMoreCalled && widget.onLoadMore != null) {
+          _loadMoreCalled = true;
+          print('✨ ScrollListener: 90% reached, offset: $currentScroll / $maxScroll, calling onLoadMore...');
+          widget.onLoadMore!();
+          
+          // Reset flag after a delay to allow next load
+          Future.delayed(const Duration(milliseconds: 800), () {
+            _loadMoreCalled = false;
+            print('✨ ScrollListener: Flag reset, ready for next load');
+          });
+        }
+      }
+    }
   }
 
   OverlayEntry _createOverlayEntry() {
@@ -122,6 +184,7 @@ class _CustomFieldPersonalDetailState extends State<CustomFieldPersonalDetail> {
                   onTap: () {}, // Prevent closing when tapping dropdown
                   child: StatefulBuilder(
                     builder: (context, setOverlayState) {
+                      _setOverlayState = setOverlayState; // Store reference for updates
                       return Material(
                         elevation: 4,
                         borderRadius: BorderRadius.circular(12),
@@ -150,12 +213,17 @@ class _CustomFieldPersonalDetailState extends State<CustomFieldPersonalDetail> {
                                 ),
                                 onChanged: (query) {
                                   _debounce?.cancel();
+                                  // Reset load flag when search query changes
+                                  _loadMoreCalled = false;
                                   _debounce = Timer(const Duration(milliseconds: 300), () {
                                     setOverlayState(() {
-                                      _filteredItems = widget.items
-                                          .where((item) => item.toLowerCase().contains(query.toLowerCase()))
-                                          .toSet()
-                                          .toList();
+                                      _filteredItems = query.isEmpty
+                                          ? widget.items.toSet().toList()
+                                          : widget.items
+                                              .where((item) => item.toLowerCase().contains(query.toLowerCase()))
+                                              .toSet()
+                                              .toList();
+                                      print('🔍 Search: query="$query", found ${_filteredItems.length} items');
                                     });
                                   });
                                 },
@@ -166,21 +234,28 @@ class _CustomFieldPersonalDetailState extends State<CustomFieldPersonalDetail> {
                                     ? const Center(
                                         child: Text('No items found'),
                                       )
-                                    : Scrollbar(
-                                        child: ListView.builder(
-                                          padding: EdgeInsets.zero,
-                                          itemCount: _filteredItems.length,
-                                          itemBuilder: (context, index) {
-                                            final item = _filteredItems[index];
-                                            return ListTile(
-                                              contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-                                              dense: true,
-                                              title: Text(item),
-                                              onTap: () => _selectItem(item),
-                                              selected: widget.value == item,
-                                              selectedTileColor: Colors.blue.shade50,
-                                            );
-                                          },
+                                    : NotificationListener<ScrollNotification>(
+                                        onNotification: (notification) {
+                                          _checkScroll(notification);
+                                          return false;
+                                        },
+                                        child: Scrollbar(
+                                          child: ListView.builder(
+                                            controller: _scrollController,
+                                            padding: EdgeInsets.zero,
+                                            itemCount: _filteredItems.length,
+                                            itemBuilder: (context, index) {
+                                              final item = _filteredItems[index];
+                                              return ListTile(
+                                                contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                                                dense: true,
+                                                title: Text(item),
+                                                onTap: () => _selectItem(item),
+                                                selected: widget.value == item,
+                                                selectedTileColor: Colors.blue.shade50,
+                                              );
+                                            },
+                                          ),
                                         ),
                                       ),
                               ),

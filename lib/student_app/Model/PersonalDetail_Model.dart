@@ -7,6 +7,7 @@ class PersonalDetailModel {
   final String email;
   final String state;
   final String city;
+  final String? gender;
 
   PersonalDetailModel({
     required this.firstName,
@@ -17,6 +18,7 @@ class PersonalDetailModel {
     required this.email,
     required this.state,
     required this.city,
+    this.gender,
   });
 
   factory PersonalDetailModel.fromJson(Map<String, dynamic> json) {
@@ -37,6 +39,7 @@ class PersonalDetailModel {
       email: json['email'] ?? '',
       state: json['state'] ?? '',
       city: json['city'] ?? '',
+      gender: json['gender'],
     );
   }
 }

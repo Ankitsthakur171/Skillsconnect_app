@@ -213,98 +213,105 @@ class _InterviewScreenState extends State<InterviewScreen> {
       splitScreenMode: true,
     );
 
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
-        statusBarColor: Colors.tealAccent,
-        statusBarIconBrightness: Brightness.dark,
-      ),
-      child: Container(
-        color: const Color(0xFFEBF6F7),
-        child: RefreshIndicator(
-          onRefresh: _refreshInterviewList,
-          child: Scaffold(
-            backgroundColor: Colors.white,
-            appBar: PreferredSize(
-              preferredSize: Size.fromHeight(64.h),
-              child: SafeArea(child: _buildAppBar()),
-            ),
-            body: SafeArea(
-              child: !_hasInternet
-                  ? (_showShimmer
-                  ? _buildShimmerList()
-                  : NoInternetPage(onRetry: _retryConnection))
-                  : ValueListenableBuilder<List<InterviewModel>?>(
-                valueListenable: _repo.notifier,
-                builder: (context, data, _) {
-                  if (data == null) return _buildShimmerList();
+   return Scaffold(
+  backgroundColor: Colors.white,
+  appBar: PreferredSize(
+    preferredSize: Size.fromHeight(64.h),
+    child: SafeArea(
+      top: true,
+      bottom: false,
+      child: _buildAppBar(),
+    ),
+  ),
+  body: RefreshIndicator(
+    onRefresh: _refreshInterviewList,
+    child: SafeArea(
+      child: !_hasInternet
+          ? (_showShimmer
+              ? _buildShimmerList()
+              : NoInternetPage(onRetry: _retryConnection))
+          : ValueListenableBuilder<List<InterviewModel>?>(  
+              valueListenable: _repo.notifier,
+              builder: (context, data, _) {
+                if (data == null) return _buildShimmerList();
 
-                  if (data.isEmpty) {
-                    return _showShimmer
-                        ? _buildShimmerList()
-                        : const Center(child: Text("No interviews Scheduled yet"));
-                  }
+                if (data.isEmpty) {
+                  return _showShimmer
+                      ? _buildShimmerList()
+                      : const Center(
+                          child: Text("No interviews Scheduled yet"),
+                        );
+                }
 
-                  List<InterviewModel> filteredData;
-                  if (_startDate != null && _endDate != null) {
-                    filteredData = data.where((item) {
-                      DateTime interviewDate;
-                      try {
-                        interviewDate =
-                            DateFormat('dd MMM yyyy').parse(item.date);
-                      } catch (_) {
-                        interviewDate =
-                            DateTime.tryParse(item.date) ?? DateTime(1970);
-                      }
-                      return !interviewDate.isBefore(_startDate!) &&
-                          !interviewDate.isAfter(_endDate!);
-                    }).toList();
-                  } else {
-                    filteredData = data;
-                  }
+                List<InterviewModel> filteredData;
 
-                  if (filteredData.isEmpty) {
-                    return _showShimmer
-                        ? _buildShimmerList()
-                        : const Center(
-                        child: Text('No interviews found',
+                if (_startDate != null && _endDate != null) {
+                  filteredData = data.where((item) {
+                    DateTime interviewDate;
+                    try {
+                      interviewDate =
+                          DateFormat('dd MMM yyyy').parse(item.date);
+                    } catch (_) {
+                      interviewDate =
+                          DateTime.tryParse(item.date) ?? DateTime(1970);
+                    }
+                    return !interviewDate.isBefore(_startDate!) &&
+                        !interviewDate.isAfter(_endDate!);
+                  }).toList();
+                } else {
+                  filteredData = data;
+                }
+
+                if (filteredData.isEmpty) {
+                  return _showShimmer
+                      ? _buildShimmerList()
+                      : const Center(
+                          child: Text(
+                            'No interviews found',
                             style: TextStyle(
-                                fontSize: 14, color: Colors.grey)));
-                  }
-
-                  return SingleChildScrollView(
-                    padding: EdgeInsets.symmetric(
-                        horizontal: 14.w, vertical: 8.h),
-                    child: Column(
-                      children: filteredData.map((item) {
-                        final isOffice =
-                        item.meetingMode.toLowerCase().contains('office');
-                        return Padding(
-                          padding: EdgeInsets.only(bottom: 8.h),
-                          child: InterviewCard(
-                            model: item,
-                            onJoinTap: () {
-                              if (isOffice) {
-                                _showOfficeDetailSheet(item);
-                              } else {
-                                _joinAndOpen(item);
-                              }
-                            },
+                              fontSize: 14,
+                              color: Colors.grey,
+                            ),
                           ),
                         );
-                      }).toList(),
-                    ),
-                  );
-                },
-              ),
+                }
+
+                return SingleChildScrollView(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 14.w,
+                    vertical: 8.h,
+                  ),
+                  child: Column(
+                    children: filteredData.map((item) {
+                      final isOffice =
+                          item.meetingMode.toLowerCase().contains('office');
+
+                      return Padding(
+                        padding: EdgeInsets.only(bottom: 8.h),
+                        child: InterviewCard(
+                          model: item,
+                          onJoinTap: () {
+                            if (isOffice) {
+                              _showOfficeDetailSheet(item);
+                            } else {
+                              _joinAndOpen(item);
+                            }
+                          },
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                );
+              },
             ),
-            bottomNavigationBar: CustomBottomNavBar(
-              currentIndex: _selectedIndex,
-              onTap: _onItemTapped,
-            ),
-          ),
-        ),
-      ),
-    );
+    ),
+  ),
+  bottomNavigationBar: CustomBottomNavBar(
+    currentIndex: _selectedIndex,
+    onTap: _onItemTapped,
+  ),
+);
+
   }
 
   Widget _buildAppBar() {
@@ -691,98 +698,100 @@ class _InterviewScreenCustomState extends State<InterviewScreenCustom> {
       splitScreenMode: true,
     );
 
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
-        statusBarColor: Colors.tealAccent,
-        statusBarIconBrightness: Brightness.dark,
-      ),
-      child: Container(
-        color: const Color(0xFFEBF6F7),
-        child: RefreshIndicator(
-          onRefresh: _refreshInterviewList,
-          child: Scaffold(
-            backgroundColor: Colors.white,
-            appBar: PreferredSize(
-              preferredSize: Size.fromHeight(64.h),
-              child: SafeArea(child: _buildAppBar()),
-            ),
-            body: SafeArea(
-              child: !_hasInternet
-                  ? (_showShimmer
-                  ? _buildShimmerList()
-                  : NoInternetPage(onRetry: _retryConnection))
-                  : ValueListenableBuilder<List<InterviewModel>?>(
-                valueListenable: _repo.notifier,
-                builder: (context, data, _) {
-                  if (data == null) return _buildShimmerList();
+    return Scaffold(
+  backgroundColor: Colors.white,
+  appBar: PreferredSize(
+    preferredSize: Size.fromHeight(64.h),
+    child: SafeArea(
+      top: true,
+      bottom: false,
+      child: _buildAppBar(),
+    ),
+  ),
+  body: RefreshIndicator(
+    onRefresh: _refreshInterviewList,
+    child: SafeArea(
+      child: !_hasInternet
+          ? (_showShimmer
+              ? _buildShimmerList()
+              : NoInternetPage(onRetry: _retryConnection))
+          : ValueListenableBuilder<List<InterviewModel>?>(
+              valueListenable: _repo.notifier,
+              builder: (context, data, _) {
+                if (data == null) return _buildShimmerList();
 
-                  if (data.isEmpty) {
-                    return _showShimmer
-                        ? _buildShimmerList()
-                        : const Center(child: Text("No interviews Scheduled yet"));
-                  }
+                if (data.isEmpty) {
+                  return _showShimmer
+                      ? _buildShimmerList()
+                      : const Center(
+                          child: Text("No interviews Scheduled yet"),
+                        );
+                }
 
-                  List<InterviewModel> filteredData;
-                  if (_startDate != null && _endDate != null) {
-                    filteredData = data.where((item) {
-                      DateTime interviewDate;
-                      try {
-                        interviewDate =
-                            DateFormat('dd MMM yyyy').parse(item.date);
-                      } catch (_) {
-                        interviewDate =
-                            DateTime.tryParse(item.date) ?? DateTime(1970);
-                      }
-                      return !interviewDate.isBefore(_startDate!) &&
-                          !interviewDate.isAfter(_endDate!);
-                    }).toList();
-                  } else {
-                    filteredData = data;
-                  }
+                List<InterviewModel> filteredData;
 
-                  if (filteredData.isEmpty) {
-                    return _showShimmer
-                        ? _buildShimmerList()
-                        : const Center(
-                        child: Text('No interviews found',
+                if (_startDate != null && _endDate != null) {
+                  filteredData = data.where((item) {
+                    DateTime interviewDate;
+                    try {
+                      interviewDate =
+                          DateFormat('dd MMM yyyy').parse(item.date);
+                    } catch (_) {
+                      interviewDate =
+                          DateTime.tryParse(item.date) ?? DateTime(1970);
+                    }
+
+                    return !interviewDate.isBefore(_startDate!) &&
+                        !interviewDate.isAfter(_endDate!);
+                  }).toList();
+                } else {
+                  filteredData = data;
+                }
+
+                if (filteredData.isEmpty) {
+                  return _showShimmer
+                      ? _buildShimmerList()
+                      : const Center(
+                          child: Text(
+                            'No interviews found',
                             style: TextStyle(
-                                fontSize: 14, color: Colors.grey)));
-                  }
-
-                  return SingleChildScrollView(
-                    padding: EdgeInsets.symmetric(
-                        horizontal: 14.w, vertical: 8.h),
-                    child: Column(
-                      children: filteredData.map((item) {
-                        final isOffice =
-                        item.meetingMode.toLowerCase().contains('office');
-                        return Padding(
-                          padding: EdgeInsets.only(bottom: 8.h),
-                          child: InterviewCard(
-                            model: item,
-                            onJoinTap: () {
-                              if (isOffice) {
-                                _showOfficeDetailSheet(item);
-                              } else {
-                                _joinAndOpen(item);
-                              }
-                            },
+                              fontSize: 14,
+                              color: Colors.grey,
+                            ),
                           ),
                         );
-                      }).toList(),
-                    ),
-                  );
-                },
-              ),
+                }
+
+                return SingleChildScrollView(
+                  padding: EdgeInsets.symmetric(
+                      horizontal: 14.w, vertical: 8.h),
+                  child: Column(
+                    children: filteredData.map((item) {
+                      final isOffice =
+                          item.meetingMode.toLowerCase().contains('office');
+
+                      return Padding(
+                        padding: EdgeInsets.only(bottom: 8.h),
+                        child: InterviewCard(
+                          model: item,
+                          onJoinTap: () {
+                            if (isOffice) {
+                              _showOfficeDetailSheet(item);
+                            } else {
+                              _joinAndOpen(item);
+                            }
+                          },
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                );
+              },
             ),
-            // bottomNavigationBar: CustomBottomNavBar(
-            //   currentIndex: _selectedIndex,
-            //   onTap: _onItemTapped,
-            // ),
-          ),
-        ),
-      ),
-    );
+    ),
+  ),
+);
+
   }
 
   Widget _buildAppBar() {

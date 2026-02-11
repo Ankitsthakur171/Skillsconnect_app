@@ -45,6 +45,7 @@ class SkillsSection extends StatelessWidget {
           )
         else if (skillList.isNotEmpty)
           Container(
+            width: double.infinity,
             padding: EdgeInsets.all(10.w),
             margin: EdgeInsets.only(top: 7.h),
             decoration: BoxDecoration(

@@ -134,16 +134,16 @@ class EducationSection extends StatelessWidget {
                       ],
                     ),
                     SizedBox(height: 8.h),
-                    Text('Degree: ${edu.courseName ?? 'N/A'}',
+                    Text('Degree: ${edu.courseName ?? 'Not provided'}',
                         style: TextStyle(fontSize: 13.sp, color: textColor)),
                     SizedBox(height: 6.h),
-                    Text('Specialization: ${edu.specializationName ?? 'N/A'}',
+                    Text('Specialization: ${edu.specializationName ?? 'Not provided'}',
                         style: TextStyle(fontSize: 13.sp, color: textColor)),
                     SizedBox(height: 6.h),
-                    Text('Marks: ${edu.marks.isNotEmpty ? edu.marks : 'N/A'}',
+                    Text('Marks: ${edu.marks.isNotEmpty ? edu.marks : 'Not provided'}',
                         style: TextStyle(fontSize: 13.sp, color: textColor)),
                     SizedBox(height: 8.h),
-                    Text('College: ${edu.collegeMasterName ?? 'N/A'}',
+                    Text('College: ${edu.collegeMasterName ?? 'Not provided'}',
                         style: TextStyle(fontSize: 13.sp, color: textColor)),
                     SizedBox(height: 4.h),
                     Text(edu.passingYear.isNotEmpty ? edu.passingYear : '',
@@ -158,9 +158,9 @@ class EducationSection extends StatelessWidget {
           final index = entry.key;
           final b = entry.value;
 
-          final board = (b.boardName.isNotEmpty) ? b.boardName : 'N/A';
-          final marks = (b.marks.isNotEmpty) ? b.marks : 'N/A';
-          final year = (b.passingYear.isNotEmpty) ? b.passingYear : 'N/A';
+          final board = (b.boardName.isNotEmpty) ? b.boardName : 'Not provided';
+          final marks = (b.marks.isNotEmpty) ? b.marks : 'Not provided';
+          final year = (b.passingYear.isNotEmpty) ? b.passingYear : 'Not provided';
 
           return Container(
             margin: EdgeInsets.only(top: 8.h),

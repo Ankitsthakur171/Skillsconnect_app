@@ -2,6 +2,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shimmer/shimmer.dart';
@@ -1241,7 +1242,10 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
                                 _buildLabel('Your percentage'),
                                 _buildTextField(
                                     'Enter percentage', _percentageController,
-                                    keyboardType: TextInputType.number),
+                                    keyboardType: TextInputType.numberWithOptions(decimal: true),
+                                    inputFormatters: [
+                                      FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                                    ]),
                                 _buildLabel('Year of passing'),
                                 SearchableDropdownField(
                                   key: _yearDropdownKey,
@@ -1435,7 +1439,10 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
                                 _buildTextField(
                                     'Enter percentage or grade',
                                     _marksController,
-                                    keyboardType: TextInputType.number,
+                                    keyboardType: TextInputType.numberWithOptions(decimal: true),
+                                    inputFormatters: [
+                                      FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                                    ],
                                     key: _marksFieldKey,
                                     focusNode: _marksFocusNode
                                 ),
@@ -1540,6 +1547,7 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
     TextInputType keyboardType = TextInputType.text,
     Key? key,
     FocusNode? focusNode,
+    List<TextInputFormatter>? inputFormatters,
   }) {
     String? error;
     if (controller == _marksController) {
@@ -1553,6 +1561,7 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
       keyboardType: keyboardType,
       focusNode: focusNode,
       key: key,
+      inputFormatters: inputFormatters,
       decoration: InputDecoration(
         labelText: label,
         labelStyle: TextStyle(fontSize: 12.4.sp),

@@ -95,4 +95,75 @@ class CityListApi {
       return allCities;
     }
   }
+
+  // Fetch cities with pagination support (single page only)
+  static Future<Map<String, dynamic>> fetchCitiesPage({
+    required String cityName,
+    required String stateId,
+    required String authToken,
+    required String connectSid,
+    required int offset,
+    int limit = 30,
+  }) async {
+    try {
+      var url = Uri.parse(ApiConstantsStu.city_list);
+      var headers = {
+        'Content-Type': 'application/json',
+        'Cookie': 'authToken=$authToken; connect.sid=$connectSid',
+      };
+
+      var body = jsonEncode({
+        "city_name": cityName,
+        "state_id": stateId.isNotEmpty ? int.parse(stateId) : null,
+        "offset": offset,
+        "limit": limit,
+      });
+      
+      var request = http.Request('POST', url)
+        ..headers.addAll(headers)
+        ..body = body;
+
+      final response = await request.send().timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          print("❌ Request timed out for city page, offset $offset");
+          return http.StreamedResponse(Stream.value([]), 408);
+        },
+      );
+
+      final resBody = await response.stream.bytesToString();
+
+      if (response.statusCode == 200) {
+        final data = json.decode(resBody);
+        if (data is Map && data['status'] == true && data['data'] is List) {
+          List options = data['data'] as List;
+          var cities = options
+              .map<String>((item) => item['name']?.toString() ?? '')
+              .where((name) => name.isNotEmpty)
+              .toList();
+
+          final pagination = data['pagination'] as Map? ?? {};
+          final total = pagination['total'] as int? ?? 0;
+
+          return {
+            'cities': cities,
+            'total': total,
+            'offset': offset,
+            'hasMore': offset + limit < total,
+          };
+        }
+      } else {
+        await SessionGuard.scan(statusCode: response.statusCode, body: resBody);
+      }
+    } catch (e) {
+      print("❌ Error fetching cities page at offset $offset: $e");
+    }
+
+    return {
+      'cities': [],
+      'total': 0,
+      'offset': offset,
+      'hasMore': false,
+    };
+  }
 }
