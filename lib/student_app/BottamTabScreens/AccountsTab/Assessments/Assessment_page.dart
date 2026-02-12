@@ -138,9 +138,16 @@ class _AssessmentPageState extends State<AssessmentPage> {
     final double contentFontSize = 14.0 * _scale;
     final double buttonHeight = 44.0 * _scale;
 
-    // Check if assessment is expired (current date is after end date)
-    final bool isExpired =
-        a.endDate != null && DateTime.now().isAfter(a.endDate!);
+    // Check if assessment is expired.
+    // Treat the end date as inclusive: allow submissions through the end date,
+    // and mark expired starting the next day.
+    bool isExpired = false;
+    if (a.endDate != null) {
+      final end = a.endDate!;
+      // construct end-of-day for the end date in local time
+      final endOfDay = DateTime(end.year, end.month, end.day, 23, 59, 59);
+      isExpired = DateTime.now().isAfter(endOfDay);
+    }
 
     final ButtonStyle submitButtonStyle = ButtonStyle(
       backgroundColor: MaterialStateProperty.resolveWith<Color?>((states) {

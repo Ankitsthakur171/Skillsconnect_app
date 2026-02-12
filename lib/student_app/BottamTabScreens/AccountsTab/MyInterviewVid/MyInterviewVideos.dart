@@ -9,7 +9,8 @@ import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:skillsconnect/student_app/BottamTabScreens/AccountsTab/MyInterviewVid/camera_record_screen.dart';
-import 'package:youtube_player_flutter/youtube_player_flutter.dart';
+import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'package:http/http.dart' as http;
 import '../../../Model/My_Interview_Videos_Model.dart';
 import '../../../Pages/Notification_icon_Badge.dart';
@@ -43,20 +44,49 @@ List<CameraDescription>? _cameras;
   
 
   final String youtubeUrl = 'https://www.youtube.com/watch?v=yeTExU0nuho';
-  YoutubePlayerController? _controller;
   String _videoId = '';
+  WebViewController? _webViewController;
+  bool _webViewLoading = false;
+
+  // Scroll controller to detect when player goes offscreen
+  ScrollController? _listScrollController;
+  // Key for the player widget to compute visibility
+  final GlobalKey _playerKey = GlobalKey();
 
   bool _isUploading = false;
   Map<String, String> _uploadProgress = {}; // Track upload progress: questionId -> status
 
-  bool _showYoutube = true;
+  bool _showYoutube = false; // don't auto-play or auto-load WebView
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _videoId = _extractVideoId(youtubeUrl) ?? '';
-    _createControllerIfNeeded();
+    // Initialize WebView controller for the embedded YouTube iframe
+    try {
+      final params = PlatformWebViewControllerCreationParams();
+      _webViewController = WebViewController.fromPlatformCreationParams(params)
+        ..setJavaScriptMode(JavaScriptMode.unrestricted);
+      _webViewController?.setNavigationDelegate(NavigationDelegate(
+        onPageStarted: (uri) {
+          if (mounted) setState(() => _webViewLoading = true);
+        },
+        onPageFinished: (uri) {
+          if (mounted) setState(() => _webViewLoading = false);
+        },
+        onWebResourceError: (err) {
+          if (mounted) setState(() => _webViewLoading = false);
+          print('WebView resource error: ${err.description}');
+        },
+      ));
+      // Do not auto-load the YouTube iframe; wait for user action to avoid
+      // embed errors and unnecessary background work.
+    } catch (e) {
+      print('WebView controller init error: $e');
+    }
+    // attach scroll controller for visibility detection
+    _listScrollController = ScrollController()..addListener(_onScroll);
     _fetchVideoIntro();
     _loadQueuedUploads(); // Load any previously queued uploads
     _processPendingUploads(); // Process them in background
@@ -67,7 +97,8 @@ List<CameraDescription>? _cameras;
     try {
       if (state == AppLifecycleState.paused ||
           state == AppLifecycleState.inactive) {
-        _controller?.pause();
+        // Hide the webview player when app is backgrounded to stop playback
+        if (mounted) setState(() => _showYoutube = false);
       }
     } catch (e) {
       print('Lifecycle pause error: $e');
@@ -141,40 +172,24 @@ List<CameraDescription>? _cameras;
   }
 
   String? _extractVideoId(String url) {
-    final idFromWatch = YoutubePlayer.convertUrlToId(url);
-    final videoId = idFromWatch;
-    print('🔍 [MyInterviewVideos] Extracted YouTube video ID: $videoId');
-    if (videoId == null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content:
-                  Text('Invalid YouTube URL', style: TextStyle(fontSize: 12))),
-        );
-      });
-    }
-    return videoId;
-  }
-
-  void _createControllerIfNeeded() {
-    if (_videoId.isEmpty) return;
-    if (_controller != null) return;
-
     try {
-      _controller = YoutubePlayerController(
-        initialVideoId: _videoId,
-        flags: const YoutubePlayerFlags(
-          autoPlay: false,
-          mute: false,
-          forceHD: false,
-          disableDragSeek: false,
-          loop: false,
-          isLive: false,
-        ),
-      );
+      final pattern = RegExp(
+          r'(?:v=|\/embed\/|\.be\/|v\/|watch\?v=)([A-Za-z0-9_-]{11})');
+      final match = pattern.firstMatch(url);
+      final videoId = match != null ? match.group(1) : null;
+      print('🔍 [MyInterviewVideos] Extracted YouTube video ID: $videoId');
+      if (videoId == null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text('Invalid YouTube URL', style: TextStyle(fontSize: 12))),
+          );
+        });
+      }
+      return videoId;
     } catch (e) {
-      print('Error creating YoutubePlayerController: $e');
-      _controller = null;
+      print('Error extracting video id: $e');
+      return null;
     }
   }
 
@@ -186,21 +201,36 @@ List<CameraDescription>? _cameras;
         });
       } catch (_) {}
     }
+  }
+
+  void _onScroll() {
+    if (!mounted) return;
+    if (_playerKey.currentContext == null) return;
+    if (_isFullScreen) return; // don't auto-pause in fullscreen
 
     try {
-      _controller?.pause();
+      final renderBox = _playerKey.currentContext!.findRenderObject() as RenderBox;
+      final position = renderBox.localToGlobal(Offset.zero);
+      final size = renderBox.size;
+      final screenHeight = MediaQuery.of(context).size.height;
+
+      // Determine visible area fraction
+      final visibleTop = position.dy.clamp(0.0, screenHeight);
+      final visibleBottom = (position.dy + size.height).clamp(0.0, screenHeight);
+      final visibleHeight = (visibleBottom - visibleTop).clamp(0.0, size.height);
+      final visibleFraction = visibleHeight / size.height;
+
+      // If less than 30% visible, hide the player to stop playback and reduce CPU
+      if (visibleFraction < 0.3) {
+        if (_showYoutube) {
+          setState(() {
+            _showYoutube = false;
+          });
+        }
+      }
     } catch (e) {
-      print('Pause error while disposing controller: $e');
+      // ignore layout exceptions during rapid scroll
     }
-
-    try {
-      _controller?.dispose();
-    } catch (e) {
-      print('Dispose error for controller: $e');
-    }
-
-    _controller = null;
-
   }
 
   Future<File?> _lightCompress(File input) async {
@@ -574,6 +604,7 @@ Future<void> _initCamera() async {
             body: Padding(
               padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 9.h),
               child: ListView(
+                controller: _listScrollController,
                 children: [
                   Text(
                     "Record Video Interview about Yourself",
@@ -597,48 +628,65 @@ Future<void> _initCamera() async {
                         maxWidth: availableWidth,
                         minWidth: 0,
                       ),
-                      child: ClipRect(
-                        child: SizedBox(
-                          width: availableWidth,
-                          height: playerHeight,
-                          child: (_videoId.isNotEmpty &&
-                                  _controller != null &&
-                                  _showYoutube)
-                              ? YoutubePlayerBuilder(
-                                  player: YoutubePlayer(
-                                    controller: _controller!,
-                                    showVideoProgressIndicator: true,
-                                    progressIndicatorColor:
-                                        const Color(0xFF005E6A),
-                                  ),
-                                  builder: (context, player) {
-                                    return FittedBox(
-                                      fit: BoxFit.contain,
-                                      alignment: Alignment.center,
-                                      child: SizedBox(
-                                        width: availableWidth,
-                                        height: availableWidth * (9 / 16) >
-                                                playerHeight
-                                            ? playerHeight
-                                            : availableWidth * (9 / 16),
-                                        child: AspectRatio(
-                                          aspectRatio: 16 / 9,
-                                          child: player,
+                      child: SizedBox(
+                        key: _playerKey,
+                        width: availableWidth,
+                        height: playerHeight,
+                        child: (_videoId.isNotEmpty && _showYoutube)
+                            ? ClipRect(
+                                child: (_webViewController != null)
+                                    ? WebViewWidget(controller: _webViewController!)
+                                    : const SizedBox.shrink(),
+                              )
+                            : (_videoId.isEmpty)
+                                ? Center(
+                                    child: Text(
+                                      'Invalid YouTube URL',
+                                      style: TextStyle(
+                                          color: Colors.red, fontSize: 12.sp),
+                                    ),
+                                  )
+                                : GestureDetector(
+                                    onTap: () async {
+                                      if (_webViewController != null) {
+                                        final url = Uri.parse('https://www.youtube-nocookie.com/embed/$_videoId?rel=0&playsinline=1&autoplay=1&mute=1&enablejsapi=1');
+                                        if (mounted) {
+                                          setState(() {
+                                          _showYoutube = true;
+                                          _webViewLoading = true;
+                                        });
+                                        }
+                                        try {
+                                          await _webViewController!.loadRequest(url);
+                                        } catch (e) {
+                                          print('WebView load error: $e');
+                                          if (mounted) setState(() => _webViewLoading = false);
+                                        }
+                                      } else {
+                                        setState(() => _showYoutube = true);
+                                      }
+                                    },
+                                    child: Stack(
+                                      fit: StackFit.expand,
+                                      children: [
+                                        Image.network(
+                                          'https://img.youtube.com/vi/$_videoId/hqdefault.jpg',
+                                          fit: BoxFit.cover,
                                         ),
-                                      ),
-                                    );
-                                  },
-                                )
-                              : Center(
-                                  child: Text(
-                                    _videoId.isEmpty
-                                        ? 'Invalid YouTube URL'
-                                        : 'Player stopped',
-                                    style: TextStyle(
-                                        color: Colors.red, fontSize: 12.sp),
+                                        Container(
+                                          color: Colors.black26,
+                                        ),
+                                        const Center(
+                                          child: Icon(Icons.play_circle_fill,
+                                              size: 64, color: Colors.white),
+                                        ),
+                                        if (_webViewLoading)
+                                          const Center(
+                                            child: CircularProgressIndicator(),
+                                          ),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                        ),
                       ),
                     );
                   }),
@@ -691,25 +739,28 @@ Future<void> _initCamera() async {
             ),
           ),
           SizedBox(height: 7.h),
-          Text(
-            "• This video will automatically stop playing after 60 seconds.",
-            style: TextStyle(fontSize: 12.sp, color: const Color(0xFF003840)),
-          ),
-          Text(
-            "• Please ensure that the video and audio quality are of good standard.",
-            style: TextStyle(fontSize: 12.sp, color: const Color(0xFF003840)),
-          ),
-          Text(
-            "• The Background should have no visible elements and be transparent.",
-            style: TextStyle(fontSize: 12.sp, color: const Color(0xFF003840)),
-          ),
-          Text(
-            "• You can retake or check the video before uploading.",
-            style: TextStyle(fontSize: 12.sp, color: const Color(0xFF003840)),
-          ),
-          Text(
-            "• Once you upload the video, it will no longer be available to re-take.",
-            style: TextStyle(fontSize: 12.sp, color: const Color(0xFF003840)),
+          _bulletRow("This video will automatically stop playing after 60 seconds."),
+          _bulletRow("Please ensure that the video and audio quality are of good standard."),
+          _bulletRow("The background should have no visible elements and be unobtrusive."),
+          _bulletRow("You can retake or check the video before uploading."),
+          _bulletRow("Once you upload the video, it will no longer be available to re-take."),
+        ],
+      ),
+    );
+  }
+
+  Widget _bulletRow(String text) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 6.h),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('• ', style: TextStyle(fontSize: 12.sp, color: const Color(0xFF003840))),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(fontSize: 12.sp, color: const Color(0xFF003840)),
+            ),
           ),
         ],
       ),
@@ -800,20 +851,7 @@ Future<void> _initCamera() async {
                           ),
                         ),
                       ).then((_) {
-                        try {
-                          if (_videoId.isNotEmpty && _controller == null) {
-                            _createControllerIfNeeded();
-                            if (mounted) {
-                              setState(() {
-                                _showYoutube = true;
-                              });
-                            }
-                          } else {
-                            if (mounted) setState(() => _showYoutube = true);
-                          }
-                        } catch (e) {
-                          print('Error recreating controller after preview pop: $e');
-                        }
+                        if (mounted) setState(() => _showYoutube = true);
                       });
                     } else {
                       final shouldProceed = await showDialog<bool>(
@@ -883,8 +921,12 @@ void dispose() {
   try {
     _hideAndDisposePlayer();
   } catch (_) {}
+  try {
+    _listScrollController?.removeListener(_onScroll);
+    _listScrollController?.dispose();
+  } catch (_) {}
 
-VideoCompress.dispose();
+  VideoCompress.dispose();
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   super.dispose();

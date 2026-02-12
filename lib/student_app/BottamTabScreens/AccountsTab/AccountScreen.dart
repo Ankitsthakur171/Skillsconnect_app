@@ -324,18 +324,17 @@ class _AccountScreenState extends State<AccountScreen> {
                                         _logout();
                                         break;
                                       case 'My Account':
-                                        Navigator.push(
+                                        final _ = await Navigator.push(
                                             context,
                                             MaterialPageRoute(
                                                 builder: (_) =>
-                                                const MyAccount()))
-                                            .then((_) {
-                                          if (mounted) {
-                                            context
-                                                .read<ProfileBloc>()
-                                                .add(LoadProfileData());
-                                          }
-                                        });
+                                                    const MyAccount()));
+                                        if (mounted) {
+                                          await _loadProfileData();
+                                          context
+                                              .read<ProfileBloc>()
+                                              .add(LoadProfileData());
+                                        }
                                         break;
                                       case 'My Intro videos':
                                         Navigator.push(

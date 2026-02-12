@@ -1437,16 +1437,27 @@ class JobCard extends StatelessWidget {
                     const SizedBox(width: 4),
                     InkWell(
                       onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => BlocProvider(
-                              // ❌ ..add(LoadDataApplicants(job)) hata do
-                              create: (_) => ApplicantBloc(),
-                              child: ApplicationsScreen(job: job),
+                        // Only allow navigation if job is published
+                        if ((job.status ?? '').toString().trim() == 'Publish') {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => BlocProvider(
+                                create: (_) => ApplicantBloc(),
+                                child: ApplicationsScreen(job: job),
+                              ),
                             ),
-                          ),
-                        );
+                          );
+                        } else {
+                          // Show red snackbar for 2 seconds
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: const Text('Draft or under-review jobs cannot be viewed'),
+                              backgroundColor: Colors.red,
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        }
                       },
                       // onTap: () {
                       //   Navigator.push(

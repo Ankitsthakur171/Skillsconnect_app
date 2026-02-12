@@ -32,6 +32,14 @@ class JobDetailPage2 extends StatefulWidget {
 }
 
 class _JobDetailPage2State extends State<JobDetailPage2> {
+    // Helper to format probation duration as '{number} month(s)' if only a number
+    String _formatProbationDuration(String raw) {
+      final trimmed = raw.trim();
+      if (RegExp(r'^[0-9]+$').hasMatch(trimmed)) {
+        return '$trimmed month${trimmed == '1' ? '' : 's'}';
+      }
+      return raw;
+    }
   Map<String, dynamic>? jobDetail;
   bool isLoading = true;
   String? error;
@@ -1562,29 +1570,30 @@ class _JobDetailPage2State extends State<JobDetailPage2> {
             ),
           ],
         ),
-        // Probation Duration - only render if data exists
-        if (probationDuration.isNotEmpty) ...[
-          _sectionTitle('Probation Duration'),
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 14.w),
-            decoration: BoxDecoration(
-              color: const Color(0xFFEBF6F7),
-              borderRadius: BorderRadius.circular(12.r),
-              border: Border.all(color: Colors.grey.shade200),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
+        // Probation Duration and Vacancies - show as unifiedInfoTool tiles in the same row if either exists
+        if (probationDuration.isNotEmpty || (job?['openings'] ?? 0) != 0) ...[
+          SizedBox(height: 12.h),
+          Row(
+            children: [
+              if (probationDuration.isNotEmpty)
+                Expanded(
+                  child: unifiedInfoTool(
+                    'Probation Duration',
+                    _formatProbationDuration(probationDuration),
+                  ),
                 ),
-              ],
-            ),
-            child: Text(
-              probationDuration,
-              style: subHeadingStyle.copyWith(fontSize: 14.sp),
-            ),
+              if (probationDuration.isNotEmpty && (job?['openings'] ?? 0) != 0)
+                SizedBox(width: 12.w),
+              if ((job?['openings'] ?? 0) != 0)
+                Expanded(
+                  child: unifiedInfoTool(
+                    'Vacancies',
+                    job?['openings'].toString() ?? '',
+                  ),
+                ),
+            ],
           ),
+          SizedBox(height: 12.h),
         ],
         // CTC Breakdown - only render if any data exists
         if (fixedPay.isNotEmpty || variablePay.isNotEmpty || otherIncentives.isNotEmpty) ...[
