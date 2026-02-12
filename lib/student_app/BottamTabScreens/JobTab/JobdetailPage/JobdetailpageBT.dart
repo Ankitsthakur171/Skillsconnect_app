@@ -1736,7 +1736,7 @@ class _JobDetailPage2State extends State<JobDetailPage2> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    isQualificationExpanded ? 'Show less' : 'Show more...',
+                    isQualificationExpanded ? 'Show less' : 'Show more',
                     style: TextStyle(
                       fontSize: 14.sp,
                       fontWeight: FontWeight.w600,
@@ -1746,10 +1746,10 @@ class _JobDetailPage2State extends State<JobDetailPage2> {
                   SizedBox(width: 6.w),
                   Icon(
                     isQualificationExpanded
-                        ? Icons.remove_circle_outline
-                        : Icons.add_circle_outline,
+                        ? Icons.expand_less
+                        : Icons.expand_more,
                     color: const Color(0xFF005E6A),
-                    size: 18.sp,
+                    size: 20.sp,
                   ),
                 ],
               ),
@@ -1897,7 +1897,7 @@ class _JobDetailPage2State extends State<JobDetailPage2> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          isLocationExpanded ? 'Show less' : 'Show more...',
+                          isLocationExpanded ? 'Show less' : 'Show more',
                           style: TextStyle(
                             fontSize: 14.sp,
                             fontWeight: FontWeight.w600,
@@ -1907,10 +1907,10 @@ class _JobDetailPage2State extends State<JobDetailPage2> {
                         SizedBox(width: 6.w),
                         Icon(
                           isLocationExpanded
-                              ? Icons.remove_circle_outline
-                              : Icons.add_circle_outline,
+                              ? Icons.expand_less
+                              : Icons.expand_more,
                           color: const Color(0xFF005E6A),
-                          size: 18.sp,
+                          size: 20.sp,
                         ),
                       ],
                     ),

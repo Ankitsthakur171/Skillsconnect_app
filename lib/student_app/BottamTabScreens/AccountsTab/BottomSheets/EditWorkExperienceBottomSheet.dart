@@ -60,6 +60,7 @@ class _EditWorkExperienceBottomSheetState
   late String experienceInMonths;
   late String salaryInLakhs;
   late String salaryInThousands;
+  late bool _isNewEntry;
 
   bool saving = false;
 
@@ -117,6 +118,7 @@ class _EditWorkExperienceBottomSheetState
   void initState() {
     super.initState();
 
+    _isNewEntry = widget.initialData == null;
     final currentYear = DateTime.now().year;
 
     _jobTitleController =
@@ -142,30 +144,38 @@ class _EditWorkExperienceBottomSheetState
           _onFieldFocus(_jobDescriptionFocus, _jobDescriptionKey));
 
     // Handle empty strings from API by providing defaults
-    _fromMonth = (widget.initialData?.exStartMonth?.isEmpty ?? true)
-        ? 'Jan'
-        : widget.initialData!.exStartMonth;
-    _fromYear = (widget.initialData?.exStartYear?.isEmpty ?? true)
-        ? currentYear.toString()
-        : widget.initialData!.exStartYear;
-    _toMonth = (widget.initialData?.exEndMonth?.isEmpty ?? true)
-        ? 'Jan'
-        : widget.initialData!.exEndMonth;
-    _toYear = (widget.initialData?.exEndYear?.isEmpty ?? true)
-        ? currentYear.toString()
-        : widget.initialData!.exEndYear;
+    if (widget.initialData != null) {
+      _fromMonth = (widget.initialData?.exStartMonth?.isEmpty ?? true)
+          ? 'Jan'
+          : widget.initialData!.exStartMonth;
+      _fromYear = (widget.initialData?.exStartYear?.isEmpty ?? true)
+          ? currentYear.toString()
+          : widget.initialData!.exStartYear;
+      _toMonth = (widget.initialData?.exEndMonth?.isEmpty ?? true)
+          ? 'Jan'
+          : widget.initialData!.exEndMonth;
+      _toYear = (widget.initialData?.exEndYear?.isEmpty ?? true)
+          ? currentYear.toString()
+          : widget.initialData!.exEndYear;
+    } else {
+      // New work experience: use placeholder values
+      _fromMonth = 'Please select';
+      _fromYear = 'Please select';
+      _toMonth = 'Please select';
+      _toYear = 'Please select';
+    }
 
     experienceInYear = (widget.initialData?.totalExperienceYears?.isEmpty ?? true)
-        ? '0'
+        ? (widget.initialData == null ? 'Please select' : '0')
         : widget.initialData!.totalExperienceYears;
     experienceInMonths = (widget.initialData?.totalExperienceMonths?.isEmpty ?? true)
-        ? '0'
+        ? (widget.initialData == null ? 'Please select' : '0')
         : widget.initialData!.totalExperienceMonths;
     salaryInLakhs = (widget.initialData?.salaryInLakhs?.isEmpty ?? true)
-        ? '0'
+        ? (widget.initialData == null ? 'Please select' : '0')
         : widget.initialData!.salaryInLakhs;
     salaryInThousands = (widget.initialData?.salaryInThousands?.isEmpty ?? true)
-        ? '0'
+        ? (widget.initialData == null ? 'Please select' : '0')
         : widget.initialData!.salaryInThousands;
 
     _animationController =
@@ -405,7 +415,9 @@ class _EditWorkExperienceBottomSheetState
                                   _buildLabel("Years"),
                                   _dropdownField(
                                     value: experienceInYear,
-                                    items: List.generate(31, (i) => "$i"),
+                                    items: (widget.initialData == null)
+                                        ? ["Please select", ...List.generate(31, (i) => "$i")]
+                                        : List.generate(31, (i) => "$i"),
                                     onChanged: (val) =>
                                         setState(() => experienceInYear = val!),
                                     dropdownKey: _experienceYearDropdownKey,
@@ -422,7 +434,9 @@ class _EditWorkExperienceBottomSheetState
                                   _buildLabel("Months"),
                                   _dropdownField(
                                     value: experienceInMonths,
-                                    items: List.generate(12, (i) => "${i + 1}"),
+                                    items: (widget.initialData == null)
+                                        ? ["Please select", ...List.generate(12, (i) => "${i + 1}")]
+                                        : List.generate(12, (i) => "${i + 1}"),
                                     onChanged: (val) => setState(
                                         () => experienceInMonths = val!),
                                     dropdownKey: _experienceMonthDropdownKey,
@@ -443,7 +457,9 @@ class _EditWorkExperienceBottomSheetState
                                   _buildLabel("Lakhs"),
                                   _dropdownField(
                                     value: salaryInLakhs,
-                                    items: List.generate(31, (i) => "$i"),
+                                    items: (widget.initialData == null)
+                                        ? ["Please select", ...List.generate(31, (i) => "$i")]
+                                        : List.generate(31, (i) => "$i"),
                                     onChanged: (val) =>
                                         setState(() => salaryInLakhs = val!),
                                     dropdownKey: _salaryLakhsDropdownKey,
@@ -460,28 +476,9 @@ class _EditWorkExperienceBottomSheetState
                                   _buildLabel("Thousands"),
                                   _dropdownField(
                                     value: salaryInThousands,
-                                    items: [
-                                      "0",
-                                      "5",
-                                      "10",
-                                      "15",
-                                      "20",
-                                      "25",
-                                      "30",
-                                      "35",
-                                      "40",
-                                      "45",
-                                      "50",
-                                      "55",
-                                      "60",
-                                      "65",
-                                      "70",
-                                      "75",
-                                      "80",
-                                      "85",
-                                      "90",
-                                      "95"
-                                    ],
+                                    items: (widget.initialData == null)
+                                        ? ["Please select", "0", "5", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55", "60", "65", "70", "75", "80", "85", "90", "95"]
+                                        : ["0", "5", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55", "60", "65", "70", "75", "80", "85", "90", "95"],
                                     onChanged: (val) => setState(
                                         () => salaryInThousands = val!),
                                     dropdownKey: _salaryThousandsDropdownKey,
@@ -559,8 +556,7 @@ class _EditWorkExperienceBottomSheetState
       padding: EdgeInsets.symmetric(vertical: 5.4.h),
       child: NonSearchableDropdownField(
         key: dropdownKey,
-        value:
-            value.isNotEmpty && items.contains(value) ? value : items.first,
+        value: (value.isNotEmpty && items.contains(value)) ? value : (items.isNotEmpty ? items.first : value),
         items: items,
         onChanged: onChanged,
         label: 'Please select',
@@ -605,21 +601,12 @@ class _EditWorkExperienceBottomSheetState
 
   Widget _buildDateRow(String month, String year,
       Function(String) onMonthChanged, Function(String) onYearChanged, {GlobalKey? rowKey, required GlobalKey monthDropdownKey, required GlobalKey yearDropdownKey}) {
-    final months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec'
-    ];
-    final years = List.generate(30, (index) => (2000 + index).toString());
+    final months = _isNewEntry
+        ? ['Please select', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+        : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final years = _isNewEntry
+        ? ['Please select', ...List.generate(30, (index) => (2000 + index).toString())]
+        : List.generate(30, (index) => (2000 + index).toString());
     return GestureDetector(
       key: rowKey,
       onTap: () {

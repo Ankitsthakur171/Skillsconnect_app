@@ -8,6 +8,35 @@ import '../../../../Model/EducationDetail_Model.dart';
 import 'SectionHeader.dart';
 import 'ShimmerWidgets.dart';
 
+String _formatMonthYear(String? month, String year) {
+  if (year.isEmpty) return 'Not provided';
+  if (month == null || month.isEmpty) return year;
+  return '$month $year';
+}
+
+String _formatGradingDisplay(String? marks, int? gradingType) {
+  if (marks == null || marks.isEmpty) return 'Not provided';
+  
+  if (gradingType == 1) {
+    return '$marks';
+  } else if (gradingType == 2) {
+    return '$marks';
+  } else if (gradingType == 3) {
+    return '$marks%';
+  }
+  
+  return marks;
+}
+
+String _getGradingLabel(int? gradingType) {
+  if (gradingType == 1 || gradingType == 2) {
+    return 'GPA';
+  } else if (gradingType == 3) {
+    return 'Percentage';
+  }
+  return 'Marks';
+}
+
 bool _snackBarShown = false;
 
 void _showSnackBarOnce(BuildContext context, String message,
@@ -140,13 +169,13 @@ class EducationSection extends StatelessWidget {
                     Text('Specialization: ${edu.specializationName ?? 'Not provided'}',
                         style: TextStyle(fontSize: 13.sp, color: textColor)),
                     SizedBox(height: 6.h),
-                    Text('Marks: ${edu.marks.isNotEmpty ? edu.marks : 'Not provided'}',
+                    Text('${_getGradingLabel(edu.gradingType)}: ${edu.marks.isNotEmpty ? _formatGradingDisplay(edu.marks, edu.gradingType) : 'Not provided'}',
                         style: TextStyle(fontSize: 13.sp, color: textColor)),
                     SizedBox(height: 8.h),
                     Text('College: ${edu.collegeMasterName ?? 'Not provided'}',
                         style: TextStyle(fontSize: 13.sp, color: textColor)),
                     SizedBox(height: 4.h),
-                    Text(edu.passingYear.isNotEmpty ? edu.passingYear : '',
+                    Text(_formatMonthYear(edu.passingMonth, edu.passingYear),
                         style: TextStyle(
                             fontSize: 13.sp, color: textColor, height: 1.4)),
                   ],
@@ -160,7 +189,7 @@ class EducationSection extends StatelessWidget {
 
           final board = (b.boardName.isNotEmpty) ? b.boardName : 'Not provided';
           final marks = (b.marks.isNotEmpty) ? b.marks : 'Not provided';
-          final year = (b.passingYear.isNotEmpty) ? b.passingYear : 'Not provided';
+          final year = _formatMonthYear(null, b.passingYear);
 
           return Container(
             margin: EdgeInsets.only(top: 8.h),

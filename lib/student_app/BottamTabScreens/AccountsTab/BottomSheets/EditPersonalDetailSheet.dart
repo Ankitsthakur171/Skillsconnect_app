@@ -50,11 +50,12 @@ class _EditPersonalDetailsSheetState extends State<EditPersonalDetailsSheet>
   bool isLoadingStates = true;
   bool isLoadingCities = false;
   bool isSubmitting = false;
+  late String selectedGender;
   List<String> states = [];
   List<String> cities = [];
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
-  Map<String, String> _stateIdCache = {}; // Cache for state name -> state ID
+  Map<String, String> _stateIdCache = {}; 
   int _cityOffset = 0;
   bool _hasMoreCities = true;
   final GlobalKey _firstNameKey = GlobalKey();
@@ -143,6 +144,7 @@ class _EditPersonalDetailsSheetState extends State<EditPersonalDetailsSheet>
         TextEditingController(text: widget.initialData?.email ?? '');
     selectedState = widget.initialData?.state ?? '';
     selectedCity = widget.initialData?.city ?? '';
+    selectedGender = widget.initialData?.gender ?? '';
     
 
     _animationController = AnimationController(
@@ -520,6 +522,36 @@ class _EditPersonalDetailsSheetState extends State<EditPersonalDetailsSheet>
                           onBeforeTap: () => _scrollToField(_cityKey),
                           onLoadMore: _loadMoreCities,
                         ),
+                        _buildLabel('Gender'),
+                        Row(
+                          children: [
+                            GestureDetector(
+                              onTap: () => setState(() => selectedGender = 'Male'),
+                              child: Container(
+                                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                                margin: EdgeInsets.only(right: 12.w),
+                                decoration: BoxDecoration(
+                                  color: selectedGender.toLowerCase() == 'male' ? _accent : Colors.white,
+                                  borderRadius: BorderRadius.circular(20.r),
+                                  border: Border.all(color: _borderColor),
+                                ),
+                                child: Text('Male', style: TextStyle(color: selectedGender.toLowerCase() == 'male' ? Colors.white : Colors.black)),
+                              ),
+                            ),
+                            GestureDetector(
+                              onTap: () => setState(() => selectedGender = 'Female'),
+                              child: Container(
+                                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                                decoration: BoxDecoration(
+                                  color: selectedGender.toLowerCase() == 'female' ? _accent : Colors.white,
+                                  borderRadius: BorderRadius.circular(20.r),
+                                  border: Border.all(color: _borderColor),
+                                ),
+                                child: Text('Female', style: TextStyle(color: selectedGender.toLowerCase() == 'female' ? Colors.white : Colors.black)),
+                              ),
+                            ),
+                          ],
+                        ),
                         SizedBox(height: 27.1.h),
                         ElevatedButton(
                           onPressed: isSubmitting ? null : _onSavePressed,
@@ -608,6 +640,7 @@ class _EditPersonalDetailsSheetState extends State<EditPersonalDetailsSheet>
       dateOfBirth: dob,
       state: selectedState,
       city: selectedCity,
+      gender: selectedGender.isEmpty ? null : selectedGender,
     );
 
     await PersonalDetailPostApi.updatePersonalDetails(
@@ -623,6 +656,7 @@ class _EditPersonalDetailsSheetState extends State<EditPersonalDetailsSheet>
           email: email,
           state: selectedState,
           city: selectedCity,
+          gender: selectedGender.isEmpty ? null : selectedGender,
         );
         widget.onSave(updatedData);
         if (context.mounted) {

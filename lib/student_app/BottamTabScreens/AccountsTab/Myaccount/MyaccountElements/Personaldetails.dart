@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:intl/intl.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../../Model/PersonalDetail_Model.dart';
 import 'DetailRow.dart';
@@ -48,7 +49,16 @@ class PersonalDetailsSection extends StatelessWidget {
               icon: Icons.perm_identity_outlined,
               text: '${personalDetail!.firstName} ${personalDetail!.lastName}',
             ),
-            DetailRow(icon: Icons.cake_outlined, text: personalDetail!.dateOfBirth),
+            DetailRow(
+              icon: Icons.cake_outlined,
+              text: (() {
+                final raw = personalDetail!.dateOfBirth;
+                if (raw.isEmpty) return 'Not provided';
+                final dt = DateTime.tryParse(raw);
+                if (dt == null) return raw;
+                return DateFormat('dd MMM yyyy').format(dt);
+              })(),
+            ),
             DetailRow(icon: Icons.phone_outlined, text: personalDetail!.mobile),
             DetailRow(icon: FontAwesomeIcons.whatsapp, text: personalDetail!.whatsAppNumber),
             DetailRow(

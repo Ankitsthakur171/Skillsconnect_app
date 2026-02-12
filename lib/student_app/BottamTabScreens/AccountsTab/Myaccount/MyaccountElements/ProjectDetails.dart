@@ -131,7 +131,7 @@ class ProjectsSection extends StatelessWidget {
         else
           Column(
             children: List.generate(projects.length, (i) {
-              final proj = projects[i];
+              final proj = projects[projects.length - 1 - i];
 
               print('📦 [ProjectItem] index=$i, type=${proj.type}');
 
@@ -273,7 +273,7 @@ class ProjectsSection extends StatelessWidget {
                       Padding(
                         padding: EdgeInsets.only(top: 8.h),
                         child: Text(
-                          'Duration : ${proj.duration}',
+                          'Duration : ${proj.duration} ${proj.durationPeriod}'.trim(),
                           style: TextStyle(
                             fontSize: 13.sp,
                     fontWeight: FontWeight.w500,

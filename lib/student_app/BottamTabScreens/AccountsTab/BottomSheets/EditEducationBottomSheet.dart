@@ -169,7 +169,12 @@ class _EditEducationBottomSheetState extends State<EditEducationBottomSheet>
     final data = widget.initialData;
     _marksController = TextEditingController(text: data?.marks ?? '');
     _boardNameController = TextEditingController(text: data?.boardName ?? '');
-    _percentageController = TextEditingController(text: data?.grade ?? '');
+    
+    // For basic education (has basicEducationId), use marks. Otherwise use grade for higher education.
+    final percentageValue = (data?.basicEducationId != null) 
+        ? (data?.marks ?? '') 
+        : (data?.grade ?? '');
+    _percentageController = TextEditingController(text: percentageValue);
 
     degreeName = data?.degreeName ?? '';
     collegeName = data?.collegeMasterName ?? '';

@@ -156,6 +156,12 @@ class _EditCertificateBottomSheetState extends State<EditCertificateBottomSheet>
         _expiryYear = expiryParts[0];
         _expiryMonth = CertificateModel.numberToMonth(expiryParts[1]);
       }
+    } else {
+      // New certificate: use placeholder values
+      _issueMonth = 'Select Month';
+      _issueYear = 'Select Year';
+      _expiryMonth = 'Select Month';
+      _expiryYear = 'Select Year';
     }
 
     _animationController =

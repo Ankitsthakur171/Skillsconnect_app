@@ -8,12 +8,15 @@ class PersonalDetailUpdateRequest {
   final String state;
   final String city;
 
+  final String? gender;
+
   PersonalDetailUpdateRequest({
     required this.firstName,
     required this.lastName,
     required this.dateOfBirth,
     required this.state,
     required this.city,
+    this.gender,
   })  : mobile = "0000000000",
         whatsAppNumber = "0000000000",
         email = "placeholder@example.com";
@@ -28,6 +31,7 @@ class PersonalDetailUpdateRequest {
       "email": email,
       "state": state,
       "city": city,
+      "gender": gender ?? '',
     };
   }
 }

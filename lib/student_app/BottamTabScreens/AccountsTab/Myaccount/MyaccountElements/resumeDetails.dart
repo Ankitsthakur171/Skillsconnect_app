@@ -433,75 +433,76 @@ class _ResumeSectionState extends State<ResumeSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text("Resume",
-                style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold)),
-            SizedBox(
-              width: 100.w,
-              child: TextButton(
-                style: TextButton.styleFrom(
-                  side: BorderSide(color: const Color(0xFF005E6A), width: 1.1.w),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(25.r),
+        if (_resumeUrl != null)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text("Resume",
+                  style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold)),
+              SizedBox(
+                width: 100.w,
+                child: TextButton(
+                  style: TextButton.styleFrom(
+                    side: BorderSide(color: const Color(0xFF005E6A), width: 1.1.w),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(25.r),
+                    ),
+                    padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
-                  padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                onPressed: _isLoading
-                    ? null
-                    : () {
-                        _handleTap(context, () async {
-                          File? file = await _pickResumeFile();
-                          if (file == null) return;
+                  onPressed: _isLoading
+                      ? null
+                      : () {
+                          _handleTap(context, () async {
+                            File? file = await _pickResumeFile();
+                            if (file == null) return;
 
-                          if (!file.path.toLowerCase().endsWith('.pdf')) {
-                            _showSnackBarOnce(context, "Please select a PDF");
-                            return;
-                          }
+                            if (!file.path.toLowerCase().endsWith('.pdf')) {
+                              _showSnackBarOnce(context, "Please select a PDF");
+                              return;
+                            }
 
-                          setState(() => _isLoading = true);
-                          try {
-                            final sasUrl = await _getSasToken(file);
-                            if (sasUrl != null) {
-                              final cleanUrl =
-                                  await _uploadToAzure(sasUrl, file);
-                              if (cleanUrl != null) {
-                                final blobFileName =
-                                    Uri.parse(cleanUrl).pathSegments.last;
-                                await _updateResumeInfo(cleanUrl, blobFileName);
+                            setState(() => _isLoading = true);
+                            try {
+                              final sasUrl = await _getSasToken(file);
+                              if (sasUrl != null) {
+                                final cleanUrl =
+                                    await _uploadToAzure(sasUrl, file);
+                                if (cleanUrl != null) {
+                                  final blobFileName =
+                                      Uri.parse(cleanUrl).pathSegments.last;
+                                  await _updateResumeInfo(cleanUrl, blobFileName);
 
-                                if (mounted) {
-                                  setState(() {
-                                    _resumeUrl = cleanUrl;
-                                  });
+                                  if (mounted) {
+                                    setState(() {
+                                      _resumeUrl = cleanUrl;
+                                    });
+                                  }
+                                } else {
+                                  _showSnackBarOnce(
+                                      context, "Failed to upload to storage");
                                 }
                               } else {
                                 _showSnackBarOnce(
-                                    context, "Failed to upload to storage");
+                                    context, "Failed to get SAS URL");
                               }
-                            } else {
-                              _showSnackBarOnce(
-                                  context, "Failed to get SAS URL");
+                            } finally {
+                              if (mounted) setState(() => _isLoading = false);
                             }
-                          } finally {
-                            if (mounted) setState(() => _isLoading = false);
-                          }
-                        });
-                      },
-                child: Text(
-                  _resumeUrl == null ? "Upload" : "Update",
-                  style: TextStyle(
-                    color: const Color(0xFF005E6A),
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.bold,
+                          });
+                        },
+                  child: Text(
+                    _resumeUrl == null ? "Upload" : "Update",
+                    style: TextStyle(
+                      color: const Color(0xFF005E6A),
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
         SizedBox(height: 8.h),
         if (_resumeUrl != null)
           Container(
@@ -569,20 +570,64 @@ class _ResumeSectionState extends State<ResumeSection> {
             ),
           )
         else
-          Container(
-            width: double.infinity,
-            height: 70.h,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              border: Border.all(color: const Color(0xFFBCD8DB)),
-              borderRadius: BorderRadius.circular(10.r),
-              color: Colors.white,
+          GestureDetector(
+            onTap: () {
+              _handleTap(context, () async {
+                File? file = await _pickResumeFile();
+                if (file == null) return;
+
+                if (!file.path.toLowerCase().endsWith('.pdf')) {
+                  _showSnackBarOnce(context, "Please select a PDF");
+                  return;
+                }
+
+                setState(() => _isLoading = true);
+                try {
+                  final sasUrl = await _getSasToken(file);
+                  if (sasUrl != null) {
+                    final cleanUrl =
+                        await _uploadToAzure(sasUrl, file);
+                    if (cleanUrl != null) {
+                      final blobFileName =
+                          Uri.parse(cleanUrl).pathSegments.last;
+                      await _updateResumeInfo(cleanUrl, blobFileName);
+
+                      if (mounted) {
+                        setState(() {
+                          _resumeUrl = cleanUrl;
+                        });
+                      }
+                    } else {
+                      _showSnackBarOnce(
+                          context, "Failed to upload to storage");
+                    }
+                  } else {
+                    _showSnackBarOnce(
+                        context, "Failed to get SAS URL");
+                  }
+                } finally {
+                  if (mounted) setState(() => _isLoading = false);
+                }
+              });
+            },
+            child: Container(
+              width: double.infinity,
+              height: 70.h,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                border: Border.all(color: const Color(0xFFBCD8DB)),
+                borderRadius: BorderRadius.circular(10.r),
+                color: Colors.white,
+              ),
+              child: Text(
+                "Upload resume",
+                style: TextStyle(
+                    fontSize: 14.sp,
+                    color: const Color(0xFF005E6A),
+                    fontWeight: FontWeight.w600),
+              ),
             ),
-            child: Text(
-              "Please upload a resume",
-              style: TextStyle(fontSize: 12.sp, color: Colors.grey),
-            ),
-          ),
+          )
       ],
     );
   }

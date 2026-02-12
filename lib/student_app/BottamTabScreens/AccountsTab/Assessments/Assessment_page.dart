@@ -138,12 +138,13 @@ class _AssessmentPageState extends State<AssessmentPage> {
     final double contentFontSize = 14.0 * _scale;
     final double buttonHeight = 44.0 * _scale;
 
-    // final bool isPastDeadline =
-    //     a.endDate != null && DateTime.now().isAfter(a.endDate!);
+    // Check if assessment is expired (current date is after end date)
+    final bool isExpired =
+        a.endDate != null && DateTime.now().isAfter(a.endDate!);
 
     final ButtonStyle submitButtonStyle = ButtonStyle(
       backgroundColor: MaterialStateProperty.resolveWith<Color?>((states) {
-        if (states.contains(MaterialState.disabled)) return Colors.red.shade700;
+        if (states.contains(MaterialState.disabled)) return Colors.grey.shade400;
         return teal;
       }),
       shape: MaterialStateProperty.all<RoundedRectangleBorder>(
@@ -264,24 +265,35 @@ class _AssessmentPageState extends State<AssessmentPage> {
                     ],
                   ),
                   SizedBox(height: 6 * _scale),
-                  GestureDetector(
-                    onTap: () => _openLink(a.assessmentUrl),
-                    child: Text(
-                      a.assessmentUrl.isEmpty
-                          ? 'Assessment URL (not available)'
-                          : a.assessmentUrl,
-                      style: TextStyle(
-                        color:
-                            a.assessmentUrl.isEmpty ? Colors.grey : Colors.blue,
-                        decoration: a.assessmentUrl.isEmpty
-                            ? null
-                            : TextDecoration.underline,
-                        fontSize: contentFontSize,
+                  // Hide assessment link if expired
+                  if (!isExpired)
+                    GestureDetector(
+                      onTap: () => _openLink(a.assessmentUrl),
+                      child: Text(
+                        a.assessmentUrl.isEmpty
+                            ? 'Assessment URL (not available)'
+                            : a.assessmentUrl,
+                        style: TextStyle(
+                          color:
+                              a.assessmentUrl.isEmpty ? Colors.grey : Colors.blue,
+                          decoration: a.assessmentUrl.isEmpty
+                              ? null
+                              : TextDecoration.underline,
+                          fontSize: contentFontSize,
+                        ),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
+                    )
+                  else
+                    Text(
+                      'Assessment period has ended',
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: contentFontSize,
+                        fontStyle: FontStyle.italic,
+                      ),
                     ),
-                  ),
                 ],  
               ),
             ),
@@ -292,11 +304,9 @@ class _AssessmentPageState extends State<AssessmentPage> {
                 width: double.infinity,
                 height: buttonHeight,
                 child: ElevatedButton(
-                  onPressed:
-                      // isPastDeadline
-                      //     ? null
-                      //     :
-                      () {
+                  onPressed: isExpired
+                      ? null
+                      : () {
                     showModalBottomSheet(
                       context: context,
                       isScrollControlled: true,
@@ -306,11 +316,10 @@ class _AssessmentPageState extends State<AssessmentPage> {
                   },
                   style: submitButtonStyle,
                   child: Text(
-                    // isPastDeadline ? 'Deadline crossed' :
-                    'Submit Assessment',
+                    isExpired ? 'Assessment Expired' : 'Submit Assessment',
                     style: TextStyle(
                       fontSize: 16 * _scale,
-                      color: Colors.white,
+                      color: isExpired ? Colors.grey.shade600 : Colors.white,
                       fontWeight: FontWeight.w600,
                     ),
                   ),

@@ -698,7 +698,7 @@ class _InterviewScreenCustomState extends State<InterviewScreenCustom> {
       splitScreenMode: true,
     );
 
-    return Scaffold(
+  return Scaffold(
   backgroundColor: Colors.white,
   appBar: PreferredSize(
     preferredSize: Size.fromHeight(64.h),
